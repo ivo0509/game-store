@@ -31,6 +31,11 @@ export default function HeaderNav({ user }: HeaderNavProps) {
             <Link href="/library" className="font-medium text-gray-700 transition-colors hover:text-blue-600">
               Library
             </Link>
+            {(user?.role === "publisher" || user?.role === "admin") && (
+              <Link href="/publisher" className="font-medium text-blue-600 transition-colors hover:text-blue-700">
+                Publisher
+              </Link>
+            )}
           </nav>
 
           <div className="hidden items-center gap-4 md:flex">
@@ -55,6 +60,12 @@ export default function HeaderNav({ user }: HeaderNavProps) {
               <MobileLink href="/" onClick={() => setIsMenuOpen(false)}>Home</MobileLink>
               <MobileLink href="/games" onClick={() => setIsMenuOpen(false)}>Games</MobileLink>
               <MobileLink href="/library" onClick={() => setIsMenuOpen(false)}>Library</MobileLink>
+              {(user?.role === "publisher" || user?.role === "admin") && (
+                <MobileLink href="/publisher" onClick={() => setIsMenuOpen(false)}>Publisher</MobileLink>
+              )}
+              {user && (
+                <MobileLink href="/profile" onClick={() => setIsMenuOpen(false)}>Profile</MobileLink>
+              )}
               <div className="flex flex-col gap-2 border-t border-gray-200 pt-4">
                 <AuthControls user={user} isMobile />
               </div>
@@ -91,10 +102,13 @@ function AuthControls({
 
   return (
     <>
-      <div className={isMobile ? "text-center" : "text-right"}>
-        <p className="text-sm font-semibold text-gray-900">{user.name}</p>
+      <Link
+        href="/profile"
+        className={isMobile ? "text-center" : "text-right"}
+      >
+        <p className="text-sm font-semibold text-gray-900 hover:text-blue-600">{user.name}</p>
         <p className="text-xs text-gray-500">{user.email}</p>
-      </div>
+      </Link>
       <form action={logoutAction}>
         <button
           type="submit"

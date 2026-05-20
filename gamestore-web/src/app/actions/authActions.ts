@@ -41,11 +41,14 @@ export async function registerAction(
     return { error: "Passwords do not match." };
   }
 
+  const role = String(formData.get("role") ?? "user") === "publisher" ? "publisher" : "user";
+
   try {
     await registerUser({
       name: String(formData.get("name") ?? ""),
       email: String(formData.get("email") ?? ""),
       password,
+      role,
     });
   } catch (error) {
     return {

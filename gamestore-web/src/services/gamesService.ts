@@ -12,6 +12,7 @@ export type Game = {
   price: string;
   discountPercent: number;
   coverImageUrl: string | null;
+  trailerUrl: string | null;
   ageRating: string | null;
 };
 
@@ -27,6 +28,7 @@ export async function getPublishedGames(): Promise<Game[]> {
       price: games.price,
       discountPercent: games.discountPercent,
       coverImageUrl: games.coverImageUrl,
+      trailerUrl: games.trailerUrl,
       ageRating: games.ageRating,
     })
     .from(games)
@@ -48,6 +50,7 @@ export async function getGameById(id: number): Promise<Game | null> {
       price: games.price,
       discountPercent: games.discountPercent,
       coverImageUrl: games.coverImageUrl,
+      trailerUrl: games.trailerUrl,
       ageRating: games.ageRating,
     })
     .from(games)

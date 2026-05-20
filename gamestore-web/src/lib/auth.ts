@@ -81,3 +81,19 @@ export async function getSessionPayload() {
 
   return verifySessionToken(token);
 }
+
+export async function requireSession() {
+  const session = await getSessionPayload();
+  if (!session) {
+    throw new Error("You must be logged in.");
+  }
+  return session;
+}
+
+export async function requirePublisher() {
+  const session = await requireSession();
+  if (session.role !== "publisher" && session.role !== "admin") {
+    throw new Error("Publisher access required.");
+  }
+  return session;
+}

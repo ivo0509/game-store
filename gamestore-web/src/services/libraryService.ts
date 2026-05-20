@@ -15,6 +15,7 @@ export async function getUserLibrary(userId: number): Promise<Game[]> {
       price: games.price,
       discountPercent: games.discountPercent,
       coverImageUrl: games.coverImageUrl,
+      trailerUrl: games.trailerUrl,
       ageRating: games.ageRating,
     })
     .from(cartItems)

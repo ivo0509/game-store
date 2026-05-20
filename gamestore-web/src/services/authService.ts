@@ -24,10 +24,13 @@ export async function registerUser(input: {
   name: string;
   email: string;
   password: string;
+  role?: "user" | "publisher";
 }) {
   const name = input.name.trim();
   const email = input.email.trim().toLowerCase();
   const password = input.password;
+  const role: "user" | "publisher" =
+    input.role === "publisher" ? "publisher" : "user";
 
   if (name.length < 2) {
     throw new Error("Name must be at least 2 characters.");
@@ -53,7 +56,7 @@ export async function registerUser(input: {
   const passwordHash = await bcrypt.hash(password, PASSWORD_SALT_ROUNDS);
   const [createdUser] = await db
     .insert(users)
-    .values({ name, email, passwordHash })
+    .values({ name, email, passwordHash, role })
     .returning({
       id: users.id,
       name: users.name,

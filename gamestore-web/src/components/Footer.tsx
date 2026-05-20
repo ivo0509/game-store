@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { getCurrentUser } from "@/services/authService";
+import { getCurrentUser } from "../services/authService";
 
 export default async function Footer() {
   const user = await getCurrentUser();

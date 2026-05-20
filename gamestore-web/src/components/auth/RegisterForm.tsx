@@ -101,6 +101,33 @@ export default function RegisterForm() {
         />
       </div>
 
+      <div>
+        <span className="mb-2 block text-sm font-medium text-gray-700">
+          Account Type
+        </span>
+        <div className="grid grid-cols-2 gap-3">
+          <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:border-blue-500">
+            <input
+              type="radio"
+              name="role"
+              value="user"
+              defaultChecked
+              className="text-blue-600"
+            />
+            Gamer
+          </label>
+          <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:border-blue-500">
+            <input
+              type="radio"
+              name="role"
+              value="publisher"
+              className="text-blue-600"
+            />
+            Publisher
+          </label>
+        </div>
+      </div>
+
       <button
         type="submit"
         disabled={isPending}

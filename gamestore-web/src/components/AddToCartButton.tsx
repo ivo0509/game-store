@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { addToCartAction, removeFromCartAction } from '@/app/actions/cartActions';
+import { addToCartAction, removeFromCartAction } from '../app/actions/cartActions';
 
 type Props = {
   gameId: number;

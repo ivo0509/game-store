@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { Game } from "@/services/gamesService";
+import type { Game } from "../services/gamesService";
 
 type Props = {
   game: Game;
