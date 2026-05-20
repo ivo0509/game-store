@@ -1,6 +1,11 @@
 import Link from "next/link";
 import { getGameById } from "@/services/gamesService";
 import { notFound } from "next/navigation";
+import AddToCartButton from "@/components/AddToCartButton";
+import WishlistButton from "@/components/WishlistButton";
+import { getSessionPayload } from "@/lib/auth";
+import { isGameInLibrary } from "@/services/libraryService";
+import { isGameWishlisted } from "@/app/actions/wishlistActions";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -8,11 +13,20 @@ type Props = {
 
 export default async function GameDetailPage({ params }: Props) {
   const { id } = await params;
-  const game = await getGameById(parseInt(id));
+  const gameId = parseInt(id);
+  const [game, session] = await Promise.all([
+    getGameById(gameId),
+    getSessionPayload(),
+  ]);
 
   if (!game) {
     notFound();
   }
+
+  const [inLibrary, isWishlisted] = await Promise.all([
+    session ? isGameInLibrary(session.userId, gameId) : Promise.resolve(false),
+    session ? isGameWishlisted(session.userId, gameId) : Promise.resolve(false),
+  ]);
 
   const discountedPrice =
     game.discountPercent > 0
@@ -119,12 +133,8 @@ export default async function GameDetailPage({ params }: Props) {
 
           {/* CTA Buttons */}
           <div className="flex gap-4 pt-4">
-            <button className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold transition-colors">
-              Add to Cart
-            </button>
-            <button className="px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-semibold transition-colors">
-              ♡
-            </button>
+            <AddToCartButton gameId={game.id} initialInLibrary={inLibrary} />
+            <WishlistButton gameId={game.id} initialWishlisted={isWishlisted} />
           </div>
       </div>
     </div>
