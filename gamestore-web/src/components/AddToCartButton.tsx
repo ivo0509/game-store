@@ -17,6 +17,13 @@ export default function AddToCartButton({ gameId, initialInLibrary = false }: Pr
   const [inLibrary, setInLibrary] = useState(initialInLibrary);
 
   const handleClick = async () => {
+    if (inLibrary) {
+      const confirmed = window.confirm(
+        "Are you sure you want to remove this game from your library?"
+      );
+      if (!confirmed) return;
+    }
+
     setIsLoading(true);
     setMessage(null);
     setIsError(false);
@@ -27,7 +34,11 @@ export default function AddToCartButton({ gameId, initialInLibrary = false }: Pr
         : await addToCartAction(gameId);
 
       if (result.success) {
-        setInLibrary(!inLibrary);
+        if (inLibrary) {
+          router.push("/library?removed=1");
+          return;
+        }
+        setInLibrary(true);
         router.refresh();
       }
       setMessage(result.message);

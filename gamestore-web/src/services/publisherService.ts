@@ -50,16 +50,133 @@ export type PublisherGameSummary = PublisherGame & {
 
 // ─── Validation ───────────────────────────────────────────────────────────────
 
-function validateInput(input: PublisherGameInput) {
-  if (!input.title.trim()) throw new Error("Title is required.");
-  if (!input.description.trim()) throw new Error("Description is required.");
-  if (!input.genre.trim()) throw new Error("Genre is required.");
+const ISO_DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
+const MIN_RELEASE_YEAR = 1970;
+const MAX_RELEASE_YEAR = 2100;
 
-  const priceNumber = Number(input.price);
-  if (!Number.isFinite(priceNumber) || priceNumber < 0) {
-    throw new Error("Price must be a non-negative number.");
+const TITLE_MIN = 2;
+const TITLE_MAX = 200;
+const DESCRIPTION_MIN = 10;
+const DESCRIPTION_MAX = 5000;
+const GENRE_MIN = 2;
+const GENRE_MAX = 60;
+const AGE_RATING_MAX = 10;
+const MAX_PRICE = 9999.99;
+const ALLOWED_AGE_RATINGS = [
+  "3+",
+  "7+",
+  "12+",
+  "16+",
+  "18+",
+  "E",
+  "E10+",
+  "T",
+  "M",
+  "AO",
+];
+
+function validateHttpUrl(value: string, label: string): string {
+  try {
+    const url = new URL(value);
+    if (url.protocol !== "http:" && url.protocol !== "https:") {
+      throw new Error();
+    }
+    return url.toString();
+  } catch {
+    throw new Error(`${label} must be a valid http(s) URL.`);
+  }
+}
+
+function validateReleaseDate(value: string | null): string | null {
+  if (value === null || value === "") return null;
+
+  if (!ISO_DATE_REGEX.test(value)) {
+    throw new Error("Release date must be in YYYY-MM-DD format.");
   }
 
+  const [yearStr, monthStr, dayStr] = value.split("-");
+  const year = Number(yearStr);
+  const month = Number(monthStr);
+  const day = Number(dayStr);
+
+  const parsed = new Date(Date.UTC(year, month - 1, day));
+  // Verify the parsed date matches the input (catches 2024-02-30, etc.)
+  if (
+    parsed.getUTCFullYear() !== year ||
+    parsed.getUTCMonth() !== month - 1 ||
+    parsed.getUTCDate() !== day
+  ) {
+    throw new Error("Release date is not a valid calendar date.");
+  }
+
+  if (year < MIN_RELEASE_YEAR || year > MAX_RELEASE_YEAR) {
+    throw new Error(
+      `Release date year must be between ${MIN_RELEASE_YEAR} and ${MAX_RELEASE_YEAR}.`
+    );
+  }
+
+  return value;
+}
+
+function validateInput(input: PublisherGameInput) {
+  // Title
+  const title = input.title.trim();
+  if (title.length < TITLE_MIN || title.length > TITLE_MAX) {
+    throw new Error(
+      `Title must be between ${TITLE_MIN} and ${TITLE_MAX} characters.`
+    );
+  }
+  input.title = title;
+
+  // Description
+  const description = input.description.trim();
+  if (
+    description.length < DESCRIPTION_MIN ||
+    description.length > DESCRIPTION_MAX
+  ) {
+    throw new Error(
+      `Description must be between ${DESCRIPTION_MIN} and ${DESCRIPTION_MAX} characters.`
+    );
+  }
+  input.description = description;
+
+  // Genre
+  const genre = input.genre.trim();
+  if (genre.length < GENRE_MIN || genre.length > GENRE_MAX) {
+    throw new Error(
+      `Genre must be between ${GENRE_MIN} and ${GENRE_MAX} characters.`
+    );
+  }
+  input.genre = genre;
+
+  // Platforms
+  const platforms = input.platforms
+    .map((p) => p.trim())
+    .filter((p) => p.length > 0);
+  if (platforms.length === 0) {
+    throw new Error("At least one platform is required.");
+  }
+  if (platforms.some((p) => p.length > 40)) {
+    throw new Error("Each platform name must be 40 characters or fewer.");
+  }
+  input.platforms = platforms;
+
+  // Price
+  const priceNumber = Number(input.price);
+  if (!Number.isFinite(priceNumber)) {
+    throw new Error("Price must be a valid number.");
+  }
+  if (priceNumber < 0) {
+    throw new Error("Price must be a non-negative number.");
+  }
+  if (priceNumber > MAX_PRICE) {
+    throw new Error(`Price must not exceed ${MAX_PRICE}.`);
+  }
+  if (!/^\d+(\.\d{1,2})?$/.test(input.price)) {
+    throw new Error("Price must have at most 2 decimal places.");
+  }
+
+  // Discount
   if (
     !Number.isInteger(input.discountPercent) ||
     input.discountPercent < 0 ||
@@ -68,17 +185,48 @@ function validateInput(input: PublisherGameInput) {
     throw new Error("Discount percent must be an integer between 0 and 100.");
   }
 
-  if (input.trailerUrl) {
-    try {
-      const url = new URL(input.trailerUrl);
-      if (url.protocol !== "http:" && url.protocol !== "https:") {
-        throw new Error();
-      }
-    } catch {
-      throw new Error("Trailer URL must be a valid http(s) URL.");
+  // Age rating (optional)
+  if (input.ageRating) {
+    const ageRating = input.ageRating.trim();
+    if (ageRating.length > AGE_RATING_MAX) {
+      throw new Error(
+        `Age rating must be ${AGE_RATING_MAX} characters or fewer.`
+      );
     }
+    if (!ALLOWED_AGE_RATINGS.includes(ageRating)) {
+      throw new Error(
+        `Age rating must be one of: ${ALLOWED_AGE_RATINGS.join(", ")}.`
+      );
+    }
+    input.ageRating = ageRating;
+  } else {
+    input.ageRating = null;
   }
 
+  // Release date
+  input.releaseDate = validateReleaseDate(input.releaseDate);
+
+  // Cover image URL (optional)
+  if (input.coverImageUrl) {
+    input.coverImageUrl = validateHttpUrl(
+      input.coverImageUrl.trim(),
+      "Cover image URL"
+    );
+  } else {
+    input.coverImageUrl = null;
+  }
+
+  // Trailer URL (optional)
+  if (input.trailerUrl) {
+    input.trailerUrl = validateHttpUrl(
+      input.trailerUrl.trim(),
+      "Trailer URL"
+    );
+  } else {
+    input.trailerUrl = null;
+  }
+
+  // Status
   if (input.status !== "draft" && input.status !== "published") {
     throw new Error("Status must be draft or published.");
   }

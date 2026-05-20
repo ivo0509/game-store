@@ -1,21 +1,31 @@
 import GameCard from "@/components/GameCard";
+import LibraryFlash from "@/components/LibraryFlash";
 import Link from "next/link";
-import type { Game } from "@/services/gamesService";
 import { getSessionPayload } from "@/lib/auth";
 import { getUserLibrary } from "@/services/libraryService";
 import { redirect } from "next/navigation";
 
-export default async function LibraryPage() {
+type Props = {
+  searchParams: Promise<{ removed?: string }>;
+};
+
+export default async function LibraryPage({ searchParams }: Props) {
   const session = await getSessionPayload();
-  
+
   if (!session) {
     redirect("/auth/login");
   }
 
-  const games = await getUserLibrary(session.userId);
+  const [games, { removed }] = await Promise.all([
+    getUserLibrary(session.userId),
+    searchParams,
+  ]);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      {removed === "1" && (
+        <LibraryFlash message="Game removed from your library." />
+      )}
       <div className="mb-8">
         <h1 className="text-4xl font-bold text-gray-900 mb-2">My Game Library</h1>
         <p className="text-gray-600">

@@ -36,6 +36,11 @@ export default function HeaderNav({ user }: HeaderNavProps) {
                 Publisher
               </Link>
             )}
+            {user?.role === "admin" && (
+              <Link href="/admin" className="font-medium text-purple-600 transition-colors hover:text-purple-700">
+                Admin
+              </Link>
+            )}
           </nav>
 
           <div className="hidden items-center gap-4 md:flex">
@@ -62,6 +67,9 @@ export default function HeaderNav({ user }: HeaderNavProps) {
               <MobileLink href="/library" onClick={() => setIsMenuOpen(false)}>Library</MobileLink>
               {(user?.role === "publisher" || user?.role === "admin") && (
                 <MobileLink href="/publisher" onClick={() => setIsMenuOpen(false)}>Publisher</MobileLink>
+              )}
+              {user?.role === "admin" && (
+                <MobileLink href="/admin" onClick={() => setIsMenuOpen(false)}>Admin</MobileLink>
               )}
               {user && (
                 <MobileLink href="/profile" onClick={() => setIsMenuOpen(false)}>Profile</MobileLink>

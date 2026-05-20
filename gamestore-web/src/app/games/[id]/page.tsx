@@ -3,6 +3,7 @@ import { getGameById } from "@/services/gamesService";
 import { notFound } from "next/navigation";
 import AddToCartButton from "@/components/AddToCartButton";
 import WishlistButton from "@/components/WishlistButton";
+import ReviewSection from "@/components/reviews/ReviewSection";
 import { getSessionPayload } from "@/lib/auth";
 import { isGameInLibrary } from "@/services/libraryService";
 import { isGameWishlisted } from "@/app/actions/wishlistActions";
@@ -153,6 +154,10 @@ export default async function GameDetailPage({ params }: Props) {
             <AddToCartButton gameId={game.id} initialInLibrary={inLibrary} />
             <WishlistButton gameId={game.id} initialWishlisted={isWishlisted} />
           </div>
+      </div>
+
+      <div className="max-w-2xl">
+        <ReviewSection gameId={game.id} />
       </div>
     </div>
   );

@@ -38,13 +38,22 @@ export default function GameForm({ mode, initial }: Props) {
         </div>
       )}
 
-      <Field label="Title" name="title" defaultValue={initial?.title} required />
+      <Field
+        label="Title"
+        name="title"
+        defaultValue={initial?.title}
+        minLength={2}
+        maxLength={200}
+        required
+      />
 
       <Field
         label="Description"
         name="description"
         defaultValue={initial?.description}
         as="textarea"
+        minLength={10}
+        maxLength={5000}
         required
       />
 
@@ -53,6 +62,8 @@ export default function GameForm({ mode, initial }: Props) {
           label="Genre"
           name="genre"
           defaultValue={initial?.genre}
+          minLength={2}
+          maxLength={60}
           required
         />
         <Field
@@ -60,6 +71,7 @@ export default function GameForm({ mode, initial }: Props) {
           name="platforms"
           defaultValue={initial?.platforms.join(", ")}
           placeholder="PC, PS5, Xbox"
+          required
         />
       </div>
 
@@ -70,6 +82,7 @@ export default function GameForm({ mode, initial }: Props) {
           type="number"
           step="0.01"
           min="0"
+          max="9999.99"
           defaultValue={initial?.price ?? "0.00"}
           required
         />
@@ -77,38 +90,77 @@ export default function GameForm({ mode, initial }: Props) {
           label="Discount %"
           name="discountPercent"
           type="number"
+          step="1"
           min="0"
           max="100"
           defaultValue={String(initial?.discountPercent ?? 0)}
+          required
         />
-        <Field
-          label="Age Rating"
-          name="ageRating"
-          defaultValue={initial?.ageRating ?? ""}
-          placeholder="18+"
-        />
+        <div>
+          <label
+            htmlFor="field-ageRating"
+            className="mb-2 block text-sm font-medium text-gray-700"
+          >
+            Age Rating
+          </label>
+          <select
+            id="field-ageRating"
+            name="ageRating"
+            defaultValue={initial?.ageRating ?? ""}
+            className="w-full rounded-lg border border-gray-300 px-4 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="">— None —</option>
+            <option value="3+">3+</option>
+            <option value="7+">7+</option>
+            <option value="12+">12+</option>
+            <option value="16+">16+</option>
+            <option value="18+">18+</option>
+            <option value="E">E (Everyone)</option>
+            <option value="E10+">E10+</option>
+            <option value="T">T (Teen)</option>
+            <option value="M">M (Mature)</option>
+            <option value="AO">AO (Adults Only)</option>
+          </select>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <Field
-          label="Release Date"
-          name="releaseDate"
-          type="date"
-          defaultValue={initial?.releaseDate ?? ""}
-        />
+        <div>
+          <label
+            htmlFor="field-releaseDate"
+            className="mb-2 block text-sm font-medium text-gray-700"
+          >
+            Release Date
+          </label>
+          <input
+            id="field-releaseDate"
+            name="releaseDate"
+            type="date"
+            min="1970-01-01"
+            max="2100-12-31"
+            defaultValue={initial?.releaseDate ?? ""}
+            onKeyDown={(e) => e.preventDefault()}
+            onPaste={(e) => e.preventDefault()}
+            className="w-full rounded-lg border border-gray-300 px-4 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+          />
+        </div>
         <Field
           label="Cover Image URL"
           name="coverImageUrl"
+          type="url"
           defaultValue={initial?.coverImageUrl ?? ""}
           placeholder="https://..."
+          pattern="https?://.*"
         />
       </div>
 
       <Field
         label="Trailer URL"
         name="trailerUrl"
+        type="url"
         defaultValue={initial?.trailerUrl ?? ""}
         placeholder="https://youtube.com/..."
+        pattern="https?://.*"
       />
 
       <div>
@@ -165,6 +217,9 @@ function Field({
   step?: string;
   min?: string;
   max?: string;
+  minLength?: number;
+  maxLength?: number;
+  pattern?: string;
 }) {
   const id = `field-${name}`;
   const common =

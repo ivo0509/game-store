@@ -97,3 +97,11 @@ export async function requirePublisher() {
   }
   return session;
 }
+
+export async function requireAdmin() {
+  const session = await requireSession();
+  if (session.role !== "admin") {
+    throw new Error("Admin access required.");
+  }
+  return session;
+}
