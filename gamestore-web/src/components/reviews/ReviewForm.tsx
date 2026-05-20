@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import {
@@ -27,6 +27,19 @@ export default function ReviewForm({ gameId, existing }: Props) {
     : createReviewAction.bind(null, gameId);
 
   const [state, formAction, isPending] = useActionState(action, initialState);
+  const lastHandledState = useRef(state);
+
+  // After a successful save of an edit, close the form automatically.
+  // Only react to NEW state transitions, not the lingering success from a
+  // previous save (otherwise re-opening edit would auto-close immediately).
+  useEffect(() => {
+    if (state === lastHandledState.current) return;
+    lastHandledState.current = state;
+    if (state.success && isEditing) {
+      setIsEditing(false);
+      router.refresh();
+    }
+  }, [state, isEditing, router]);
 
   // If user has an existing review and isn't editing, show it as a card
   if (existing && !isEditing) {
