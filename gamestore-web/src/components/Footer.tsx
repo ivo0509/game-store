@@ -1,6 +1,10 @@
-import Link from 'next/link';
+import Link from "next/link";
 
-export default function Footer() {
+import { getCurrentUser } from "@/services/authService";
+
+export default async function Footer() {
+  const user = await getCurrentUser();
+
   return (
     <footer className="bg-gray-900 text-gray-300 mt-auto">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -39,16 +43,31 @@ export default function Footer() {
           <div>
             <h3 className="text-white font-semibold mb-4">Account</h3>
             <ul className="space-y-2">
-              <li>
-                <Link href="/auth/login" className="hover:text-blue-400 transition-colors">
-                  Login
-                </Link>
-              </li>
-              <li>
-                <Link href="/auth/register" className="hover:text-blue-400 transition-colors">
-                  Register
-                </Link>
-              </li>
+              {user ? (
+                <>
+                  <li>
+                    <Link href="/library" className="hover:text-blue-400 transition-colors">
+                      My Library
+                    </Link>
+                  </li>
+                  <li className="text-gray-400">
+                    Signed in as {user.name}
+                  </li>
+                </>
+              ) : (
+                <>
+                  <li>
+                    <Link href="/login" className="hover:text-blue-400 transition-colors">
+                      Login
+                    </Link>
+                  </li>
+                  <li>
+                    <Link href="/register" className="hover:text-blue-400 transition-colors">
+                      Register
+                    </Link>
+                  </li>
+                </>
+              )}
             </ul>
           </div>
         </div>

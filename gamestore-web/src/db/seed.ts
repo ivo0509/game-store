@@ -130,7 +130,7 @@ async function seed() {
       price: "0.00",
       discountPercent: 0,
       coverImageUrl:
-        "https://cdn2.unrealengine.com/fortnite-chapter-4-season-4-1920x1080-6c3c4ba78bb0.jpg",
+        "https://cdn2.unrealengine.com/the-future-of-fortnite-is-here-1920x1080-fd281a65c8ef.jpg",
       trailerUrl: "https://www.youtube.com/watch?v=VeAJ27eJFMc",
       ageRating: "12+",
       status: "published" as const,
