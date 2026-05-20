@@ -1,0 +1,19 @@
+{
+  "name": "game-store",
+  "version": "1.0.0",
+  "description": "Game Store App for selling and buying video games",
+  "license": "ISC",
+  "author": "Ivan Yordanov",
+  "type": "commonjs",
+  "main": "index.js",
+  "workspaces": [
+    "gamestore-web",
+    "gamestore-mobile",
+    "gamestore-shared"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspaces --if-present",
+    "build": "npm run build --workspaces --if-present",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  }
+}
