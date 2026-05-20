@@ -1,0 +1,82 @@
+# Node.js / npm
+node_modules/
+package-lock.json
+npm-debug.log*
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+.pnpm-debug.log*
+.pnp
+.pnp.*
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# IDE / Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+*.pem
+
+# Testing
+/coverage
+.nyc_output/
+
+# Next.js (gamestore-web)
+.next/
+out/
+build/
+dist/
+next-env.d.ts
+.vercel/
+
+# Expo (gamestore-mobile)
+.expo/
+web-build/
+expo-env.d.ts
+.metro-health-check*
+
+# Native build artifacts (Expo)
+.kotlin/
+ios/
+android/
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+
+# Watchman
+.watchmanconfig
+
+# Yarn/Lock files (if using yarn)
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# TypeScript
+*.tsbuildinfo
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+ehthumbs.db
+
+# Misc
+*.log
+.cache/
+
+# App-specific
+app-example
