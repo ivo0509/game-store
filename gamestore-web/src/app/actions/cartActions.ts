@@ -11,6 +11,9 @@ export async function addToCartAction(gameId: number) {
     if (!session?.userId) {
       throw new Error("You must be logged in to add items to cart");
     }
+    if (session.role === "publisher" || session.role === "admin") {
+      throw new Error("Publishers and admins cannot purchase games.");
+    }
 
     // Check if item already exists in cart
     const existing = await db

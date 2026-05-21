@@ -294,7 +294,6 @@ async function seed() {
 
   console.log(`  ✓ ${orderCount} orders created`);
   console.log(`  ✓ ${orderItemCount} order items created`);
-
   console.log("\nSeeding complete!");
 }
 
@@ -302,3 +301,4 @@ seed().catch((err) => {
   console.error("Seed failed:", err);
   process.exit(1);
 });
+

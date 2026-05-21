@@ -39,6 +39,9 @@ export const users = pgTable("users", {
   photoUrl: text("photo_url"),
   role: userRoleEnum("role").notNull().default("user"),
   isBlocked: boolean("is_blocked").notNull().default(false),
+  walletBalance: numeric("wallet_balance", { precision: 12, scale: 2 })
+    .notNull()
+    .default("0.00"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });

@@ -5,7 +5,7 @@ import AddToCartButton from "@/components/AddToCartButton";
 import WishlistButton from "@/components/WishlistButton";
 import ReviewSection from "@/components/reviews/ReviewSection";
 import { getSessionPayload } from "@/lib/auth";
-import { isGameInLibrary } from "@/services/libraryService";
+import { isGameInCart, isGameInLibrary } from "@/services/libraryService";
 import { isGameWishlisted } from "@/app/actions/wishlistActions";
 
 type Props = {
@@ -24,9 +24,10 @@ export default async function GameDetailPage({ params }: Props) {
     notFound();
   }
 
-  const [inLibrary, isWishlisted] = await Promise.all([
+  const [inLibrary, isWishlisted, inCart] = await Promise.all([
     session ? isGameInLibrary(session.userId, gameId) : Promise.resolve(false),
     session ? isGameWishlisted(session.userId, gameId) : Promise.resolve(false),
+    session ? isGameInCart(session.userId, gameId) : Promise.resolve(false),
   ]);
 
   const discountedPrice =
@@ -151,7 +152,9 @@ export default async function GameDetailPage({ params }: Props) {
 
           {/* CTA Buttons */}
           <div className="flex gap-4 pt-4">
-            <AddToCartButton gameId={game.id} initialInLibrary={inLibrary} />
+            {(!session || session.role === "user") && (
+              <AddToCartButton gameId={game.id} initialInLibrary={inLibrary} initialInCart={inCart} />
+            )}
             <WishlistButton gameId={game.id} initialWishlisted={isWishlisted} />
           </div>
       </div>

@@ -1,7 +1,7 @@
 import { and, desc, eq } from "drizzle-orm";
 
 import { db } from "@/db";
-import { cartItems, games, reviews, users } from "@/db/schema";
+import { games, orderItems, orders, reviews, users } from "@/db/schema";
 
 export type GameReviewView = {
   id: number;
@@ -80,9 +80,16 @@ export async function hasUserPurchasedGame(
   gameId: number
 ): Promise<boolean> {
   const rows = await db
-    .select({ id: cartItems.id })
-    .from(cartItems)
-    .where(and(eq(cartItems.userId, userId), eq(cartItems.gameId, gameId)))
+    .select({ id: orderItems.id })
+    .from(orderItems)
+    .innerJoin(orders, eq(orders.id, orderItems.orderId))
+    .where(
+      and(
+        eq(orders.userId, userId),
+        eq(orderItems.gameId, gameId),
+        eq(orders.status, "paid")
+      )
+    )
     .limit(1);
 
   return rows.length > 0;

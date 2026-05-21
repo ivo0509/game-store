@@ -8,6 +8,20 @@
       "when": 1779271089978,
       "tag": "0000_goofy_thunderbird",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1779361622129,
+      "tag": "0001_hard_exodus",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1779362716423,
+      "tag": "0002_add_wallet_balance",
+      "breakpoints": true
     }
   ]
 }

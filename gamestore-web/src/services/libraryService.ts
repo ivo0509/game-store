@@ -1,7 +1,9 @@
-import { eq, and } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
-import { games, cartItems } from "@/db/schema";
+import { cartItems, games, orderItems, orders } from "@/db/schema";
 import type { Game } from "./gamesService";
+
+// ─── Library (purchased games via paid orders) ────────────────────────────────
 
 export async function getUserLibrary(userId: number): Promise<Game[]> {
   const rows = await db
@@ -18,15 +20,37 @@ export async function getUserLibrary(userId: number): Promise<Game[]> {
       trailerUrl: games.trailerUrl,
       ageRating: games.ageRating,
     })
-    .from(cartItems)
-    .innerJoin(games, eq(cartItems.gameId, games.id))
-    .where(eq(cartItems.userId, userId))
-    .orderBy(cartItems.createdAt);
+    .from(orderItems)
+    .innerJoin(orders, eq(orderItems.orderId, orders.id))
+    .innerJoin(games, eq(orderItems.gameId, games.id))
+    .where(and(eq(orders.userId, userId), eq(orders.status, "paid")));
 
   return rows;
 }
 
 export async function isGameInLibrary(
+  userId: number,
+  gameId: number
+): Promise<boolean> {
+  const rows = await db
+    .select({ id: orderItems.id })
+    .from(orderItems)
+    .innerJoin(orders, eq(orderItems.orderId, orders.id))
+    .where(
+      and(
+        eq(orders.userId, userId),
+        eq(orderItems.gameId, gameId),
+        eq(orders.status, "paid")
+      )
+    )
+    .limit(1);
+
+  return rows.length > 0;
+}
+
+// ─── Cart (pending, pre-purchase) ─────────────────────────────────────────────
+
+export async function isGameInCart(
   userId: number,
   gameId: number
 ): Promise<boolean> {

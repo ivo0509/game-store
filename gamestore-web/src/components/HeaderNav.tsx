@@ -28,9 +28,26 @@ export default function HeaderNav({ user }: HeaderNavProps) {
             <Link href="/games" className="font-medium text-gray-700 transition-colors hover:text-blue-600">
               Games
             </Link>
-            <Link href="/library" className="font-medium text-gray-700 transition-colors hover:text-blue-600">
-              Library
-            </Link>
+            {(!user || user.role === "user") && (
+              <Link href="/library" className="font-medium text-gray-700 transition-colors hover:text-blue-600">
+                Library
+              </Link>
+            )}
+            {user && user.role === "user" && (
+              <>
+                <Link href="/checkout" className="font-medium text-gray-700 transition-colors hover:text-blue-600">
+                  Cart
+                </Link>
+                <Link href="/wallet" className="font-medium text-gray-700 transition-colors hover:text-blue-600">
+                  Wallet
+                </Link>
+              </>
+            )}
+            {user?.role === "publisher" && (
+              <Link href="/wallet" className="font-medium text-gray-700 transition-colors hover:text-blue-600">
+                Earnings
+              </Link>
+            )}
             {(user?.role === "publisher" || user?.role === "admin") && (
               <Link href="/publisher" className="font-medium text-blue-600 transition-colors hover:text-blue-700">
                 Publisher
@@ -64,7 +81,18 @@ export default function HeaderNav({ user }: HeaderNavProps) {
             <div className="mt-4 flex flex-col gap-4">
               <MobileLink href="/" onClick={() => setIsMenuOpen(false)}>Home</MobileLink>
               <MobileLink href="/games" onClick={() => setIsMenuOpen(false)}>Games</MobileLink>
-              <MobileLink href="/library" onClick={() => setIsMenuOpen(false)}>Library</MobileLink>
+              {(!user || user.role === "user") && (
+                <MobileLink href="/library" onClick={() => setIsMenuOpen(false)}>Library</MobileLink>
+              )}
+              {user && user.role === "user" && (
+                <>
+                  <MobileLink href="/checkout" onClick={() => setIsMenuOpen(false)}>Cart</MobileLink>
+                  <MobileLink href="/wallet" onClick={() => setIsMenuOpen(false)}>Wallet</MobileLink>
+                </>
+              )}
+              {user?.role === "publisher" && (
+                <MobileLink href="/wallet" onClick={() => setIsMenuOpen(false)}>Earnings</MobileLink>
+              )}
               {(user?.role === "publisher" || user?.role === "admin") && (
                 <MobileLink href="/publisher" onClick={() => setIsMenuOpen(false)}>Publisher</MobileLink>
               )}
