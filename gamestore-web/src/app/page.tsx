@@ -54,12 +54,14 @@ export default async function Home() {
                 >
                   Browse Games
                 </Link>
-                <Link
-                  href="/library"
-                  className="px-8 py-3 bg-white text-blue-600 border-2 border-blue-600 rounded-lg hover:bg-blue-50 font-semibold transition-colors text-center"
-                >
-                  My Library
-                </Link>
+                {user.role === "user" && (
+                  <Link
+                    href="/library"
+                    className="px-8 py-3 bg-white text-blue-600 border-2 border-blue-600 rounded-lg hover:bg-blue-50 font-semibold transition-colors text-center"
+                  >
+                    My Library
+                  </Link>
+                )}
               </>
             ) : (
               <>
