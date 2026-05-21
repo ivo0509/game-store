@@ -1,7 +1,6 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 
 import { getSessionPayload } from "@/lib/auth";
 import { addFunds, checkout, refundGame } from "@/services/walletService";
@@ -51,6 +50,7 @@ export async function addFundsAction(
 
 export type CheckoutState = {
   error?: string;
+  purchasedItems?: Array<{ title: string; publisherName: string }>;
 };
 
 export async function checkoutAction(
@@ -62,8 +62,9 @@ export async function checkoutAction(
     return { error: "You must be logged in." };
   }
 
+  let result;
   try {
-    await checkout(session.userId);
+    result = await checkout(session.userId);
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Checkout failed." };
   }
@@ -71,7 +72,7 @@ export async function checkoutAction(
   revalidatePath("/library");
   revalidatePath("/checkout");
   revalidatePath("/wallet");
-  redirect("/library");
+  return { purchasedItems: result.purchasedItems };
 }
 
 // ─── Refund ───────────────────────────────────────────────────────────────────
@@ -79,6 +80,7 @@ export async function checkoutAction(
 export type RefundState = {
   error?: string;
   success?: boolean;
+  publisherName?: string;
 };
 
 export async function refundGameAction(
@@ -95,8 +97,9 @@ export async function refundGameAction(
     return { error: "Invalid game." };
   }
 
+  let result;
   try {
-    await refundGame(session.userId, gameId);
+    result = await refundGame(session.userId, gameId);
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Refund failed." };
   }
@@ -104,5 +107,5 @@ export async function refundGameAction(
   revalidatePath("/library");
   revalidatePath("/wallet");
   revalidatePath(`/games/${gameId}`);
-  return { success: true };
+  return { success: true, publisherName: result.publisherName };
 }

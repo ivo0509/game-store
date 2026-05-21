@@ -10,10 +10,41 @@ const initialState: CheckoutState = {};
 type Props = {
   items: CartSummaryItem[];
   balance: string;
+  userName: string;
 };
 
-export default function CheckoutClient({ items, balance }: Props) {
+export default function CheckoutClient({ items, balance, userName }: Props) {
   const [state, formAction, isPending] = useActionState(checkoutAction, initialState);
+
+  // ── Purchase success screen ───────────────────────────────────────────────
+  if (state.purchasedItems) {
+    return (
+      <div className="max-w-lg mx-auto text-center py-16 flex flex-col items-center gap-6">
+        <div className="text-6xl">🎉</div>
+        <h2 className="text-3xl font-bold text-gray-900">Purchase Complete!</h2>
+        <div className="w-full space-y-3">
+          {state.purchasedItems.map((item, i) => (
+            <div
+              key={i}
+              className="flex items-center justify-between rounded-lg border border-green-200 bg-green-50 px-5 py-3 text-left"
+            >
+              <span className="font-semibold text-gray-900">{item.title}</span>
+              <span className="text-sm text-gray-500">
+                Purchased by{" "}
+                <span className="font-medium text-gray-700">{userName}</span>
+              </span>
+            </div>
+          ))}
+        </div>
+        <Link
+          href="/library"
+          className="inline-block px-8 py-3 rounded-lg bg-blue-600 text-white font-semibold hover:bg-blue-700 transition-colors"
+        >
+          Go to My Library →
+        </Link>
+      </div>
+    );
+  }
 
   const publishedItems = items.filter((i) => i.status === "published");
   const unpublishedItems = items.filter((i) => i.status !== "published");

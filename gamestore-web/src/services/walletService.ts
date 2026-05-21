@@ -1,4 +1,4 @@
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { cartItems, games, orderItems, orders, users } from "@/db/schema";
 
@@ -74,7 +74,7 @@ export async function getCartSummary(userId: number): Promise<CartSummaryItem[]>
 
 // ─── Checkout ────────────────────────────────────────────────────────────────────
 
-export async function checkout(userId: number): Promise<{ orderId: number }> {
+export async function checkout(userId: number): Promise<{ orderId: number; purchasedItems: Array<{ title: string; publisherName: string }> }> {
   // 1. Load cart items (only published games, not already owned)
   const cartRows = await db
     .select({
@@ -180,23 +180,38 @@ export async function checkout(userId: number): Promise<{ orderId: number }> {
   // 9. Clear cart (remove all cartItems for this user)
   await db.delete(cartItems).where(eq(cartItems.userId, userId));
 
-  return { orderId: order.id };
+  // 10. Collect publisher names for the confirmation message
+  const publisherIds = [...new Set(itemsToBuy.map((i) => i.publisherId).filter(Boolean))] as number[];
+  const publisherRows = await db
+    .select({ id: users.id, name: users.name })
+    .from(users)
+    .where(inArray(users.id, publisherIds));
+  const publisherNameMap = new Map(publisherRows.map((r) => [r.id, r.name]));
+
+  const purchasedItems = itemsToBuy.map((item) => ({
+    title: item.title,
+    publisherName: publisherNameMap.get(item.publisherId) ?? "Unknown Publisher",
+  }));
+
+  return { orderId: order.id, purchasedItems };
 }
 
 // ─── Refund ───────────────────────────────────────────────────────────────────
 
-export async function refundGame(userId: number, gameId: number): Promise<void> {
-  // 1. Find the paid order item for this user & game
+export async function refundGame(userId: number, gameId: number): Promise<{ publisherName: string }> {
+  // 1. Find the paid order item for this user & game (join publisher name)
   const rows = await db
     .select({
       orderItemId: orderItems.id,
       orderId: orderItems.orderId,
       finalPrice: orderItems.finalPrice,
       publisherId: games.publisherId,
+      publisherName: users.name,
     })
     .from(orderItems)
     .innerJoin(orders, eq(orderItems.orderId, orders.id))
     .innerJoin(games, eq(orderItems.gameId, games.id))
+    .innerJoin(users, eq(games.publisherId, users.id))
     .where(
       and(
         eq(orders.userId, userId),
@@ -210,7 +225,7 @@ export async function refundGame(userId: number, gameId: number): Promise<void> 
     throw new Error("No purchase found for this game.");
   }
 
-  const { orderItemId, orderId, finalPrice, publisherId } = rows[0];
+  const { orderItemId, orderId, finalPrice, publisherId, publisherName } = rows[0];
   const refundAmount = parseFloat(finalPrice);
 
   // 2. Refund buyer
@@ -249,5 +264,7 @@ export async function refundGame(userId: number, gameId: number): Promise<void> 
   if (remaining.length === 0) {
     await db.delete(orders).where(eq(orders.id, orderId));
   }
+
+  return { publisherName };
 }
 

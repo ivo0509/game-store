@@ -12,27 +12,23 @@ export default function RefundButton({ gameId }: { gameId: number }) {
 
   useEffect(() => {
     if (state.success) {
-      router.refresh();
+      const timer = setTimeout(() => router.refresh(), 3000);
+      return () => clearTimeout(timer);
     }
   }, [state.success, router]);
-
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    const confirmed = window.confirm(
-      'Are you sure you want to refund this game? It will be removed from your library and the purchase price will be returned to your wallet.'
-    );
-    if (!confirmed) e.preventDefault();
-  };
 
   if (state.success) {
     return (
       <p className="text-sm text-green-600 font-medium text-center">
-        Refund processed. The game has been removed from your library.
+        Refund processed — game returned to{" "}
+        <span className="font-semibold">{state.publisherName ?? "the publisher"}</span>.
+        Your balance has been updated.
       </p>
     );
   }
 
   return (
-    <form action={formAction} onSubmit={handleSubmit} className="w-full">
+    <form action={formAction} className="w-full">
       <input type="hidden" name="gameId" value={gameId} />
       <button
         type="submit"
@@ -47,3 +43,4 @@ export default function RefundButton({ gameId }: { gameId: number }) {
     </form>
   );
 }
+
