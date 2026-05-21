@@ -10,6 +10,7 @@ const NAV = [
   { href: "/admin/games", label: "Games" },
   { href: "/admin/orders", label: "Orders" },
   { href: "/admin/reviews", label: "Reviews" },
+  { href: "/admin/sold", label: "Sold Games" },
 ];
 
 export default async function AdminLayout({

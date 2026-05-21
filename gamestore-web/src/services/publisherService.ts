@@ -1,4 +1,5 @@
 import { and, eq, sql, desc } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 
 import { db } from "@/db";
 import {
@@ -493,6 +494,63 @@ export type PublisherSummary = {
   totalPurchases: number;
   totalRevenue: string;
 };
+
+// ─── Sold Games ───────────────────────────────────────────────────────────────
+
+export type SoldGameRow = {
+  orderItemId: number;
+  gameId: number;
+  gameTitle: string;
+  buyerName: string;
+  finalPrice: string;
+  purchasedAt: Date;
+};
+
+/** Sold games for a specific publisher */
+export async function getPublisherSoldGames(publisherId: number): Promise<SoldGameRow[]> {
+  const rows = await db
+    .select({
+      orderItemId: orderItems.id,
+      gameId: games.id,
+      gameTitle: games.title,
+      buyerName: users.name,
+      finalPrice: orderItems.finalPrice,
+      purchasedAt: orders.createdAt,
+    })
+    .from(orderItems)
+    .innerJoin(orders, eq(orders.id, orderItems.orderId))
+    .innerJoin(games, eq(games.id, orderItems.gameId))
+    .innerJoin(users, eq(users.id, orders.userId))
+    .where(and(eq(games.publisherId, publisherId), eq(orders.status, "paid")))
+    .orderBy(desc(orders.createdAt));
+
+  return rows;
+}
+
+/** All sold games across every publisher (admin only) */
+export async function getAllSoldGames(): Promise<(SoldGameRow & { publisherName: string })[]> {
+  const publisherUsers = alias(users, "publisher_users");
+
+  const rows = await db
+    .select({
+      orderItemId: orderItems.id,
+      gameId: games.id,
+      gameTitle: games.title,
+      buyerName: users.name,
+      publisherName: publisherUsers.name,
+      finalPrice: orderItems.finalPrice,
+      purchasedAt: orders.createdAt,
+    })
+    .from(orderItems)
+    .innerJoin(orders, eq(orders.id, orderItems.orderId))
+    .innerJoin(games, eq(games.id, orderItems.gameId))
+    .innerJoin(users, eq(users.id, orders.userId))
+    .innerJoin(publisherUsers, eq(publisherUsers.id, games.publisherId))
+    .where(eq(orders.status, "paid"))
+    .orderBy(desc(orders.createdAt));
+
+  return rows;
+}
 
 export async function getPublisherSummary(
   publisherId: number
