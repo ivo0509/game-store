@@ -69,7 +69,7 @@ export async function createGameAction(
   revalidatePath("/publisher");
   revalidatePath("/publisher/games");
   revalidatePath("/games");
-  redirect(`/publisher/games/${newGameId}/edit`);
+  redirect("/games");
 }
 
 export async function updateGameAction(
@@ -91,7 +91,7 @@ export async function updateGameAction(
   revalidatePath(`/publisher/games/${gameId}/edit`);
   revalidatePath("/games");
   revalidatePath(`/games/${gameId}`);
-  return {};
+  redirect(`/games/${gameId}`);
 }
 
 export async function changeGameStatusAction(
