@@ -196,6 +196,100 @@ export async function checkout(userId: number): Promise<{ orderId: number; purch
   return { orderId: order.id, purchasedItems };
 }
 
+// ─── Direct single-game purchase (used by the mobile API) ────────────────────
+
+export async function purchaseSingleGame(
+  userId: number,
+  gameId: number
+): Promise<{ orderId: number; title: string; finalPrice: string }> {
+  // 1. Load the game
+  const game = await db.query.games.findFirst({
+    where: eq(games.id, gameId),
+    columns: {
+      id: true,
+      title: true,
+      price: true,
+      discountPercent: true,
+      publisherId: true,
+      status: true,
+    },
+  });
+
+  if (!game || game.status !== "published") {
+    throw new Error("Game not found or not available for purchase.");
+  }
+
+  // 2. Check not already owned
+  const alreadyOwned = await db
+    .select({ id: orderItems.id })
+    .from(orderItems)
+    .innerJoin(orders, eq(orders.id, orderItems.orderId))
+    .where(
+      and(
+        eq(orders.userId, userId),
+        eq(orderItems.gameId, gameId),
+        eq(orders.status, "paid")
+      )
+    )
+    .limit(1);
+
+  if (alreadyOwned.length > 0) {
+    throw new Error("You already own this game.");
+  }
+
+  // 3. Calculate price
+  const base = parseFloat(game.price);
+  const final =
+    game.discountPercent > 0 ? base * (1 - game.discountPercent / 100) : base;
+  const finalPrice = final.toFixed(2);
+
+  // 4. Check buyer balance
+  const buyer = await db.query.users.findFirst({
+    where: eq(users.id, userId),
+    columns: { walletBalance: true },
+  });
+  const balance = parseFloat(buyer?.walletBalance ?? "0");
+  if (balance < final) {
+    throw new Error("Insufficient wallet balance.");
+  }
+
+  // 5. Deduct buyer balance
+  await db
+    .update(users)
+    .set({ walletBalance: sql`${(balance - final).toFixed(2)}::numeric` })
+    .where(eq(users.id, userId));
+
+  // 6. Create paid order
+  const [order] = await db
+    .insert(orders)
+    .values({ userId, totalPrice: finalPrice, status: "paid" })
+    .returning({ id: orders.id });
+
+  // 7. Create order item
+  await db.insert(orderItems).values({
+    orderId: order.id,
+    gameId: game.id,
+    priceAtPurchase: game.price,
+    discountAtPurchase: game.discountPercent,
+    finalPrice,
+  });
+
+  // 8. Credit publisher
+  const publisher = await db.query.users.findFirst({
+    where: eq(users.id, game.publisherId),
+    columns: { walletBalance: true },
+  });
+  const publisherBalance = parseFloat(publisher?.walletBalance ?? "0");
+  await db
+    .update(users)
+    .set({
+      walletBalance: sql`${(publisherBalance + final).toFixed(2)}::numeric`,
+    })
+    .where(eq(users.id, game.publisherId));
+
+  return { orderId: order.id, title: game.title, finalPrice };
+}
+
 // ─── Refund ───────────────────────────────────────────────────────────────────
 
 export async function refundGame(userId: number, gameId: number): Promise<{ publisherName: string }> {
