@@ -1,7 +1,11 @@
-import { useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
+  Linking,
+  Platform,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -12,6 +16,35 @@ import { useAuth } from "../../context/AuthContext";
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
 
+function confirmAction(title: string, message: string, onConfirm: () => void) {
+  if (Platform.OS === "web") {
+    if (typeof window !== "undefined" && window.confirm(`${title}\n\n${message}`)) {
+      onConfirm();
+    }
+    return;
+  }
+  Alert.alert(title, message, [
+    { text: "Cancel", style: "cancel" },
+    { text: "OK", style: "destructive", onPress: onConfirm },
+  ]);
+}
+
+function notify(title: string, message: string) {
+  if (Platform.OS === "web") {
+    if (typeof window !== "undefined") window.alert(`${title}\n\n${message}`);
+    return;
+  }
+  Alert.alert(title, message);
+}
+
+type Review = {
+  id: number;
+  rating: number;
+  comment: string;
+  authorName: string;
+  createdAt: string;
+};
+
 type GameDetail = {
   id: number;
   title: string;
@@ -19,43 +52,133 @@ type GameDetail = {
   genre: string;
   platforms: string[];
   releaseDate: string | null;
+  trailerUrl: string | null;
   price: string;
   discountPercent: number;
-  coverImageUrl: string | null;
   ageRating: string | null;
   isPurchased: boolean;
+  isInCart: boolean;
   purchasedCount: number;
+  reviews: Review[];
 };
+
+function StarRating({ rating }: { rating: number }) {
+  return (
+    <Text style={styles.stars}>
+      {Array.from({ length: 5 }, (_, i) => (i < rating ? "★" : "☆")).join("")}
+    </Text>
+  );
+}
+
+function ReviewCard({ review }: { review: Review }) {
+  return (
+    <View style={styles.reviewCard}>
+      <View style={styles.reviewHeader}>
+        <Text style={styles.reviewAuthor}>{review.authorName}</Text>
+        <StarRating rating={review.rating} />
+      </View>
+      <Text style={styles.reviewComment}>{review.comment}</Text>
+      <Text style={styles.reviewDate}>
+        {new Date(review.createdAt).toLocaleDateString()}
+      </Text>
+    </View>
+  );
+}
 
 export default function GameDetailsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { token } = useAuth();
+  const router = useRouter();
+  const { token, user } = useAuth();
 
   const [game, setGame] = useState<GameDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [actionLoading, setActionLoading] = useState(false);
 
   useEffect(() => {
     if (!id || !token) return;
-
-    async function fetchGame() {
-      setLoading(true);
-      setError(null);
-      try {
-        const res = await fetch(`${API_BASE_URL}/games/${id}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (!res.ok) throw new Error(`Error ${res.status}`);
-        setGame(await res.json());
-      } catch {
-        setError("Failed to load game details.");
-      } finally {
-        setLoading(false);
-      }
-    }
-
     fetchGame();
   }, [id, token]);
+
+  async function fetchGame() {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(`${API_BASE_URL}/games/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error(`Error ${res.status}`);
+      setGame(await res.json());
+    } catch {
+      setError("Failed to load game details.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleAddToCart() {
+    if (!game || !token) return;
+    setActionLoading(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/cart`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ gameId: game.id }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Failed to add to cart.");
+      setGame((prev) => (prev ? { ...prev, isInCart: true } : prev));
+    } catch (err) {
+      notify("Error", err instanceof Error ? err.message : "Failed.");
+    } finally {
+      setActionLoading(false);
+    }
+  }
+
+  async function handleRemoveFromCart() {
+    if (!game || !token) return;
+    setActionLoading(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/cart/${game.id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error ?? "Failed to remove from cart.");
+      }
+      setGame((prev) => (prev ? { ...prev, isInCart: false } : prev));
+    } catch (err) {
+      notify("Error", err instanceof Error ? err.message : "Failed.");
+    } finally {
+      setActionLoading(false);
+    }
+  }
+
+  async function handleRefund() {
+    if (!game || !token) return;
+    setActionLoading(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/games/${game.id}/refund`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Refund failed.");
+      setGame((prev) =>
+        prev
+          ? { ...prev, isPurchased: false, isInCart: false, purchasedCount: Math.max(0, prev.purchasedCount - 1) }
+          : prev
+      );
+    } catch (err) {
+      notify("Error", err instanceof Error ? err.message : "Refund failed.");
+    } finally {
+      setActionLoading(false);
+    }
+  }
 
   if (loading) {
     return (
@@ -69,6 +192,9 @@ export default function GameDetailsScreen() {
     return (
       <View style={styles.centered}>
         <Text style={styles.errorText}>{error ?? "Game not found."}</Text>
+        <Pressable style={styles.retryButton} onPress={fetchGame}>
+          <Text style={styles.retryText}>Retry</Text>
+        </Pressable>
       </View>
     );
   }
@@ -79,21 +205,29 @@ export default function GameDetailsScreen() {
       ? (basePrice * (1 - game.discountPercent / 100)).toFixed(2)
       : null;
 
+  const canPurchase = user?.role === "user";
+
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <View style={styles.content}>
-        <Text style={styles.title}>{game.title}</Text>
 
+        {/* Title + owned badge */}
+        <View style={styles.titleRow}>
+          <Text style={styles.title}>{game.title}</Text>
+          {game.isPurchased && (
+            <Text style={styles.ownedBadge}>Owned</Text>
+          )}
+        </View>
+
+        {/* Genre / age rating tags */}
         <View style={styles.tagsRow}>
           <Text style={styles.tag}>{game.genre}</Text>
           {game.ageRating ? (
             <Text style={[styles.tag, styles.tagOutline]}>{game.ageRating}</Text>
           ) : null}
-          {game.isPurchased && (
-            <Text style={[styles.tag, styles.tagOwned]}>Owned</Text>
-          )}
         </View>
 
+        {/* Platforms */}
         {game.platforms.length > 0 && (
           <View style={styles.tagsRow}>
             {game.platforms.map((p) => (
@@ -102,6 +236,7 @@ export default function GameDetailsScreen() {
           </View>
         )}
 
+        {/* Price */}
         <View style={styles.priceRow}>
           {discountedPrice ? (
             <>
@@ -114,16 +249,99 @@ export default function GameDetailsScreen() {
           )}
         </View>
 
-        {game.releaseDate && (
-          <Text style={styles.meta}>
-            Released: {new Date(game.releaseDate).toLocaleDateString()}
-          </Text>
+        {/* Meta */}
+        <View style={styles.metaRow}>
+          {game.releaseDate && (
+            <Text style={styles.meta}>
+              Released: {new Date(game.releaseDate).toLocaleDateString()}
+            </Text>
+          )}
+          <Text style={styles.meta}>{game.purchasedCount} purchases</Text>
+        </View>
+
+        {/* Action button */}
+        {canPurchase && (
+          game.isPurchased ? (
+            <View style={styles.actionGroup}>
+              <View style={[styles.actionButton, styles.inLibraryBadge]}>
+                <Text style={styles.inLibraryText}>✓ In Library</Text>
+              </View>
+              <Pressable onPress={() => router.push("/library")}>
+                <Text style={styles.linkText}>Go to Library</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.actionButton, styles.refundButton, actionLoading && styles.buttonDisabled]}
+                onPress={handleRefund}
+                disabled={actionLoading}
+              >
+                {actionLoading
+                  ? <ActivityIndicator color="#fff" />
+                  : <Text style={styles.actionButtonText}>Refund Game</Text>}
+              </Pressable>
+            </View>
+          ) : game.isInCart ? (
+            <View style={styles.actionGroup}>
+              <Pressable
+                style={[styles.actionButton, styles.inCartButton, actionLoading && styles.buttonDisabled]}
+                onPress={() =>
+                  confirmAction(
+                    "Remove from cart?",
+                    `Remove "${game.title}" from your cart?`,
+                    handleRemoveFromCart
+                  )
+                }
+                disabled={actionLoading}
+              >
+                {actionLoading
+                  ? <ActivityIndicator color="#374151" />
+                  : <Text style={styles.inCartButtonText}>✓ In Cart — Remove</Text>}
+              </Pressable>
+              <Pressable
+                style={[styles.actionButton, styles.checkoutButton]}
+                onPress={() => router.push("/cart")}
+              >
+                <Text style={styles.actionButtonText}>Go to Checkout</Text>
+              </Pressable>
+            </View>
+          ) : (
+            <Pressable
+              style={[styles.actionButton, styles.buyButton, actionLoading && styles.buttonDisabled]}
+              onPress={handleAddToCart}
+              disabled={actionLoading}
+            >
+              {actionLoading
+                ? <ActivityIndicator color="#fff" />
+                : <Text style={styles.actionButtonText}>Add to Cart</Text>}
+            </Pressable>
+          )
         )}
 
-        <Text style={styles.meta}>{game.purchasedCount} purchases</Text>
-
+        {/* Description */}
         <Text style={styles.sectionTitle}>About</Text>
         <Text style={styles.description}>{game.description}</Text>
+
+        {/* Trailer */}
+        {game.trailerUrl && (
+          <>
+            <Text style={styles.sectionTitle}>Trailer</Text>
+            <Pressable onPress={() => Linking.openURL(game.trailerUrl!)}>
+              <Text style={styles.trailerLink} numberOfLines={1}>
+                {game.trailerUrl}
+              </Text>
+            </Pressable>
+          </>
+        )}
+
+        {/* Reviews */}
+        <Text style={styles.sectionTitle}>
+          Reviews ({game.reviews.length})
+        </Text>
+        {game.reviews.length === 0 ? (
+          <Text style={styles.emptyText}>No reviews yet.</Text>
+        ) : (
+          game.reviews.map((r) => <ReviewCard key={r.id} review={r} />)
+        )}
+
       </View>
     </ScrollView>
   );
@@ -137,16 +355,32 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   container: {
-    paddingBottom: 32,
+    paddingBottom: 40,
   },
   content: {
     padding: 20,
+    gap: 12,
+  },
+  titleRow: {
+    flexDirection: "row",
+    alignItems: "center",
     gap: 10,
+    flexWrap: "wrap",
   },
   title: {
     fontSize: 22,
     fontWeight: "700",
     color: "#111",
+    flexShrink: 1,
+  },
+  ownedBadge: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#16a34a",
+    backgroundColor: "#dcfce7",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 4,
   },
   tagsRow: {
     flexDirection: "row",
@@ -167,22 +401,18 @@ const styles = StyleSheet.create({
     borderColor: "#94a3b8",
     color: "#64748b",
   },
-  tagOwned: {
-    backgroundColor: "#dcfce7",
-    color: "#16a34a",
-  },
   priceRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
   },
   price: {
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: "700",
     color: "#0a7ea4",
   },
   priceDiscounted: {
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: "700",
     color: "#0a7ea4",
   },
@@ -200,24 +430,137 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
     borderRadius: 4,
   },
+  metaRow: {
+    gap: 2,
+  },
   meta: {
     fontSize: 13,
     color: "#6b7280",
   },
-  sectionTitle: {
+  actionButton: {
+    paddingVertical: 14,
+    borderRadius: 10,
+    alignItems: "center",
+    marginTop: 4,
+  },
+  buyButton: {
+    backgroundColor: "#0a7ea4",
+  },
+  refundButton: {
+    backgroundColor: "#c0392b",
+  },
+  inCartButton: {
+    backgroundColor: "#f1f5f9",
+    borderWidth: 2,
+    borderColor: "#d1d5db",
+  },
+  inCartButtonText: {
+    color: "#374151",
     fontSize: 16,
     fontWeight: "600",
+  },
+  checkoutButton: {
+    backgroundColor: "#16a34a",
+  },
+  inLibraryBadge: {
+    backgroundColor: "#dcfce7",
+    borderWidth: 2,
+    borderColor: "#86efac",
+  },
+  inLibraryText: {
+    color: "#166534",
+    fontSize: 16,
+    fontWeight: "700",
+  },
+  actionGroup: {
+    gap: 8,
+    alignItems: "stretch",
+  },
+  linkText: {
+    color: "#0a7ea4",
+    fontSize: 13,
+    textAlign: "center",
+    textDecorationLine: "underline",
+  },
+  buttonDisabled: {
+    opacity: 0.6,
+  },
+  actionButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: "700",
     color: "#111",
     marginTop: 6,
+    borderTopWidth: 1,
+    borderTopColor: "#e5e7eb",
+    paddingTop: 12,
   },
   description: {
     fontSize: 14,
     color: "#374151",
     lineHeight: 22,
   },
+  trailerLink: {
+    fontSize: 14,
+    color: "#0a7ea4",
+    textDecorationLine: "underline",
+  },
+  reviewCard: {
+    backgroundColor: "#f8fafc",
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    padding: 12,
+    gap: 6,
+  },
+  reviewHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  reviewAuthor: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#111",
+  },
+  stars: {
+    fontSize: 14,
+    color: "#f59e0b",
+    letterSpacing: 1,
+  },
+  reviewComment: {
+    fontSize: 13,
+    color: "#374151",
+    lineHeight: 20,
+  },
+  reviewDate: {
+    fontSize: 11,
+    color: "#9ca3af",
+  },
+  emptyText: {
+    fontSize: 14,
+    color: "#6b7280",
+    fontStyle: "italic",
+  },
   errorText: {
     fontSize: 15,
     color: "#c0392b",
     textAlign: "center",
+    marginBottom: 16,
+  },
+  retryButton: {
+    backgroundColor: "#0a7ea4",
+    paddingHorizontal: 24,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  retryText: {
+    color: "#fff",
+    fontWeight: "600",
   },
 });
+

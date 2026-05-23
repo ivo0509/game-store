@@ -35,6 +35,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       throw new Error(data.error ?? "Login failed. Please try again.");
     }
 
+    if (data.user?.role !== "user") {
+      throw new Error(
+        "This app is for customers only. Publisher and admin accounts must use the web app."
+      );
+    }
+
     setUser(data.user);
     setToken(data.token);
   }

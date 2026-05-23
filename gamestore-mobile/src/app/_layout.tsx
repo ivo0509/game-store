@@ -9,9 +9,10 @@ function RootNavigation() {
   const router = useRouter();
 
   useEffect(() => {
-    const inProtectedRoute = segments[0] === "games";
+    const inAuthGroup = segments[0] === "(tabs)";
+    const inGameDetails = segments[0] === "games";
 
-    if (!user && inProtectedRoute) {
+    if (!user && (inAuthGroup || inGameDetails)) {
       router.replace("/login");
     } else if (user && segments[0] === "login") {
       router.replace("/");
@@ -20,9 +21,8 @@ function RootNavigation() {
 
   return (
     <Stack>
-      <Stack.Screen name="index" options={{ title: "Home" }} />
+      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen name="login" options={{ title: "Login" }} />
-      <Stack.Screen name="games/index" options={{ title: "Games" }} />
       <Stack.Screen name="games/[id]" options={{ title: "Game Details" }} />
     </Stack>
   );

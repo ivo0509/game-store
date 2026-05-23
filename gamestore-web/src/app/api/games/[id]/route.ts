@@ -2,7 +2,7 @@ import { and, count, eq } from "drizzle-orm";
 import { NextRequest } from "next/server";
 
 import { db } from "@/db";
-import { games, orderItems, orders, reviews, users } from "@/db/schema";
+import { cartItems, games, orderItems, orders, reviews, users } from "@/db/schema";
 import {
   verifyBearerToken,
   unauthorizedResponse,
@@ -57,6 +57,16 @@ export async function GET(
       .limit(1);
     const isPurchased = purchasedRows.length > 0;
 
+    // Check if the game is in the user's cart
+    const cartRows = await db
+      .select({ id: cartItems.id })
+      .from(cartItems)
+      .where(
+        and(eq(cartItems.userId, session.userId), eq(cartItems.gameId, gameId))
+      )
+      .limit(1);
+    const isInCart = cartRows.length > 0;
+
     // Count total users who purchased this game
     const [purchaseCountRow] = await db
       .select({ total: count() })
@@ -73,6 +83,7 @@ export async function GET(
     return Response.json({
       ...game,
       isPurchased,
+      isInCart,
       purchasedCount,
       reviews: gameReviews.map((r) => ({
         id: r.id,
