@@ -33,6 +33,20 @@ function isPublicPath(pathname: string) {
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  // Handle CORS preflight (OPTIONS) for /api/* so clients on different
+  // origins (e.g. the Expo web/mobile app) can call the API.
+  if (request.method === "OPTIONS" && pathname.startsWith("/api")) {
+    return new NextResponse(null, {
+      status: 204,
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET,POST,PUT,PATCH,DELETE,OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization",
+        "Access-Control-Max-Age": "86400",
+      },
+    });
+  }
+
   if (isPublicPath(pathname)) {
     return NextResponse.next();
   }
