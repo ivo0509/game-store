@@ -12,6 +12,7 @@ import {
 } from "react-native";
 
 import { useAuth } from "../../context/AuthContext";
+import { useWallet } from "../../context/WalletContext";
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
 
@@ -19,35 +20,16 @@ const QUICK_AMOUNTS = [10, 25, 50, 100];
 
 export default function WalletScreen() {
   const { token, user } = useAuth();
+  const { balance, loading, refresh, setBalance } = useWallet();
 
-  const [balance, setBalance] = useState<string>("0.00");
-  const [loading, setLoading] = useState(true);
   const [amount, setAmount] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchBalance = useCallback(async () => {
-    if (!token) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch(`${API_BASE_URL}/wallet`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Failed to load wallet.");
-      setBalance(data.balance);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load wallet.");
-    } finally {
-      setLoading(false);
-    }
-  }, [token]);
-
   useFocusEffect(
     useCallback(() => {
-      fetchBalance();
-    }, [fetchBalance])
+      refresh();
+    }, [refresh])
   );
 
   async function addFunds(value: number) {

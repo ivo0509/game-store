@@ -11,6 +11,7 @@ import {
 } from "react-native";
 
 import { useAuth } from "../../context/AuthContext";
+import { useWallet } from "../../context/WalletContext";
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
 
@@ -24,6 +25,7 @@ type CartItem = {
 
 export default function CartScreen() {
   const { token } = useAuth();
+  const { refresh: refreshWallet } = useWallet();
   const router = useRouter();
 
   const [items, setItems] = useState<CartItem[]>([]);
@@ -77,10 +79,10 @@ export default function CartScreen() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Checkout failed.");
-      Alert.alert("Success", "Checkout successful!", [
-        { text: "OK", onPress: () => router.replace("/library") },
-      ]);
       setItems([]);
+      // Push new wallet balance app-wide without waiting for tab focus
+      refreshWallet();
+      router.replace("/library");
     } catch (err) {
       Alert.alert("Error", err instanceof Error ? err.message : "Checkout failed.");
     } finally {

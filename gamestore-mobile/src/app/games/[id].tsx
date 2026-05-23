@@ -13,6 +13,7 @@ import {
 } from "react-native";
 
 import { useAuth } from "../../context/AuthContext";
+import { useWallet } from "../../context/WalletContext";
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
 
@@ -89,6 +90,7 @@ export default function GameDetailsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { token, user } = useAuth();
+  const { refresh: refreshWallet } = useWallet();
 
   const [game, setGame] = useState<GameDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -173,6 +175,8 @@ export default function GameDetailsScreen() {
           ? { ...prev, isPurchased: false, isInCart: false, purchasedCount: Math.max(0, prev.purchasedCount - 1) }
           : prev
       );
+      // Push new wallet balance app-wide without waiting for tab focus
+      refreshWallet();
     } catch (err) {
       notify("Error", err instanceof Error ? err.message : "Refund failed.");
     } finally {

@@ -2,6 +2,7 @@ import { useRouter, useSegments, Stack } from "expo-router";
 import { useEffect } from "react";
 
 import { AuthProvider, useAuth } from "../context/AuthContext";
+import { WalletProvider } from "../context/WalletContext";
 
 function RootNavigation() {
   const { user } = useAuth();
@@ -31,7 +32,9 @@ function RootNavigation() {
 export default function RootLayout() {
   return (
     <AuthProvider>
-      <RootNavigation />
+      <WalletProvider>
+        <RootNavigation />
+      </WalletProvider>
     </AuthProvider>
   );
 }

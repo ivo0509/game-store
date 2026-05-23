@@ -43,7 +43,7 @@ export default function HeaderNav({ user }: HeaderNavProps) {
                 </Link>
               </>
             )}
-            {user?.role === "publisher" && (
+            {(user?.role === "publisher" || user?.role === "admin") && (
               <Link href="/wallet" className="font-medium text-gray-700 transition-colors hover:text-blue-600">
                 Earnings
               </Link>
@@ -90,7 +90,7 @@ export default function HeaderNav({ user }: HeaderNavProps) {
                   <MobileLink href="/wallet" onClick={() => setIsMenuOpen(false)}>Wallet</MobileLink>
                 </>
               )}
-              {user?.role === "publisher" && (
+              {(user?.role === "publisher" || user?.role === "admin") && (
                 <MobileLink href="/wallet" onClick={() => setIsMenuOpen(false)}>Earnings</MobileLink>
               )}
               {(user?.role === "publisher" || user?.role === "admin") && (
