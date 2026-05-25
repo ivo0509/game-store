@@ -11,29 +11,45 @@ import {
 
 import { useAuth } from "../context/AuthContext";
 
-export default function LoginScreen() {
-  const { login } = useAuth();
+export default function RegisterScreen() {
+  const { register } = useAuth();
   const router = useRouter();
 
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  async function handleLogin() {
+  async function handleRegister() {
     setError(null);
 
-    if (!email.trim() || !password) {
-      setError("Email and password are required.");
+    if (!name.trim() || !email.trim() || !password) {
+      setError("Name, email and password are required.");
+      return;
+    }
+    if (name.trim().length < 2) {
+      setError("Name must be at least 2 characters.");
+      return;
+    }
+    if (password.length < 8) {
+      setError("Password must be at least 8 characters.");
+      return;
+    }
+    if (password !== confirmPassword) {
+      setError("Passwords do not match.");
       return;
     }
 
     setLoading(true);
     try {
-      await login(email.trim(), password);
+      await register(name.trim(), email.trim(), password);
       router.replace("/");
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Login failed. Please try again.");
+      setError(
+        err instanceof Error ? err.message : "Registration failed. Please try again."
+      );
     } finally {
       setLoading(false);
     }
@@ -41,7 +57,16 @@ export default function LoginScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Sign In</Text>
+      <Text style={styles.title}>Create Account</Text>
+
+      <TextInput
+        style={styles.input}
+        placeholder="Name"
+        placeholderTextColor="#999"
+        value={name}
+        onChangeText={setName}
+        editable={!loading}
+      />
 
       <TextInput
         style={styles.input}
@@ -56,33 +81,43 @@ export default function LoginScreen() {
 
       <TextInput
         style={styles.input}
-        placeholder="Password"
+        placeholder="Password (min 8 chars)"
         placeholderTextColor="#999"
         secureTextEntry
         value={password}
         onChangeText={setPassword}
         editable={!loading}
-        onSubmitEditing={handleLogin}
+      />
+
+      <TextInput
+        style={styles.input}
+        placeholder="Confirm Password"
+        placeholderTextColor="#999"
+        secureTextEntry
+        value={confirmPassword}
+        onChangeText={setConfirmPassword}
+        editable={!loading}
+        onSubmitEditing={handleRegister}
       />
 
       {error && <Text style={styles.error}>{error}</Text>}
 
       <TouchableOpacity
         style={[styles.button, loading && styles.buttonDisabled]}
-        onPress={handleLogin}
+        onPress={handleRegister}
         disabled={loading}
       >
         {loading ? (
           <ActivityIndicator color="#fff" />
         ) : (
-          <Text style={styles.buttonText}>Login</Text>
+          <Text style={styles.buttonText}>Create Account</Text>
         )}
       </TouchableOpacity>
 
       <View style={styles.footer}>
-        <Text style={styles.footerText}>Don&apos;t have an account?</Text>
-        <Link href="/register" replace style={styles.link}>
-          Create one
+        <Text style={styles.footerText}>Already have an account?</Text>
+        <Link href="/login" replace style={styles.link}>
+          Sign In
         </Link>
       </View>
     </View>

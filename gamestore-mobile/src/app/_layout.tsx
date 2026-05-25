@@ -17,7 +17,7 @@ function RootNavigation() {
 
     if (!user && (inAuthGroup || inGameDetails)) {
       router.replace("/login");
-    } else if (user && segments[0] === "login") {
+    } else if (user && (segments[0] === "login" || segments[0] === "register")) {
       router.replace("/");
     }
   }, [user, loading, segments]);
@@ -34,6 +34,7 @@ function RootNavigation() {
     <Stack>
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen name="login" options={{ title: "Login" }} />
+      <Stack.Screen name="register" options={{ title: "Register" }} />
       <Stack.Screen name="games/[id]" options={{ title: "Game Details" }} />
     </Stack>
   );
