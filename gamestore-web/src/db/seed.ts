@@ -174,7 +174,7 @@ async function seed() {
       price: "29.99",
       discountPercent: 50,
       coverImageUrl:
-        "https://upload.wikimedia.org/wikipedia/en/a/a5/Grand_Theft_Auto_V.png",
+        "https://cdn.cloudflare.steamstatic.com/steam/apps/271590/header.jpg",
       trailerUrl: "https://www.youtube.com/watch?v=QkkoHAzjnUs",
       ageRating: "18+",
       status: "published" as const,
@@ -196,7 +196,7 @@ async function seed() {
       price: "39.99",
       discountPercent: 75,
       coverImageUrl:
-        "https://upload.wikimedia.org/wikipedia/en/0/0c/Witcher_3_cover_art.jpg",
+        "https://cdn.cloudflare.steamstatic.com/steam/apps/292030/header.jpg",
       trailerUrl: "https://www.youtube.com/watch?v=c0i88t0Kacs",
       ageRating: "18+",
       status: "published" as const,
@@ -217,7 +217,7 @@ async function seed() {
       price: "59.99",
       discountPercent: 40,
       coverImageUrl:
-        "https://upload.wikimedia.org/wikipedia/en/4/44/Red_Dead_Redemption_II.jpg",
+        "https://cdn.cloudflare.steamstatic.com/steam/apps/1174180/header.jpg",
       trailerUrl: "https://www.youtube.com/watch?v=eaW0tYpxyp0",
       ageRating: "18+",
       status: "published" as const,

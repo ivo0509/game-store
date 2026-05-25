@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Image,
   Linking,
   Platform,
   Pressable,
@@ -62,6 +63,7 @@ type GameDetail = {
   platforms: string[];
   releaseDate: string | null;
   trailerUrl: string | null;
+  coverImageUrl: string | null;
   price: string;
   discountPercent: number;
   ageRating: string | null;
@@ -297,6 +299,20 @@ export default function GameDetailsScreen() {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
+      {game.coverImageUrl ? (
+        <Image
+          source={{ uri: game.coverImageUrl }}
+          style={styles.cover}
+          resizeMode="cover"
+          onError={(e) =>
+            console.warn(
+              "[GameDetail] Image failed:",
+              game.coverImageUrl,
+              e.nativeEvent
+            )
+          }
+        />
+      ) : null}
       <View style={styles.content}>
 
         {/* Title + owned badge */}
@@ -558,6 +574,11 @@ const styles = StyleSheet.create({
   },
   container: {
     paddingBottom: 40,
+  },
+  cover: {
+    width: "100%",
+    aspectRatio: 16 / 9,
+    backgroundColor: "#f1f5f9",
   },
   content: {
     padding: 20,

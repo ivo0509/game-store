@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
+  Image,
   Pressable,
   StyleSheet,
   Text,
@@ -27,17 +28,41 @@ type Game = {
 };
 
 function GameCard({ game, onPress }: { game: Game; onPress: () => void }) {
+  const [imageFailed, setImageFailed] = useState(false);
   const basePrice = parseFloat(game.price);
   const discountedPrice =
     game.discountPercent > 0
       ? (basePrice * (1 - game.discountPercent / 100)).toFixed(2)
       : null;
 
+  const showImage = !!game.coverImageUrl && !imageFailed;
+
   return (
     <Pressable
       style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
       onPress={onPress}
     >
+      {showImage ? (
+        <Image
+          source={{ uri: game.coverImageUrl as string }}
+          style={styles.cardImage}
+          resizeMode="cover"
+          onError={(e) => {
+            console.warn(
+              "[GameCard] Image failed:",
+              game.coverImageUrl,
+              e.nativeEvent
+            );
+            setImageFailed(true);
+          }}
+        />
+      ) : (
+        <View style={[styles.cardImage, styles.cardImagePlaceholder]}>
+          <Text style={styles.cardImagePlaceholderText}>
+            {game.coverImageUrl ? "Image failed" : "No image"}
+          </Text>
+        </View>
+      )}
       <View style={styles.cardBody}>
         <Text style={styles.cardTitle} numberOfLines={2}>
           {game.title}
@@ -207,6 +232,19 @@ const styles = StyleSheet.create({
   },
   cardPressed: {
     opacity: 0.85,
+  },
+  cardImage: {
+    width: "100%",
+    aspectRatio: 16 / 9,
+    backgroundColor: "#f1f5f9",
+  },
+  cardImagePlaceholder: {
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  cardImagePlaceholderText: {
+    fontSize: 10,
+    color: "#94a3b8",
   },
   cardBody: {
     padding: 8,
