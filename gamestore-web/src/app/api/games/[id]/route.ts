@@ -9,7 +9,11 @@ import {
   notFoundResponse,
   serverErrorResponse,
 } from "@/lib/apiAuth";
-import { getReviewsForGame } from "@/services/reviewsService";
+import {
+  getReviewEligibility,
+  getReviewsForGame,
+  getUserReviewForGame,
+} from "@/services/reviewsService";
 
 export async function GET(
   request: NextRequest,
@@ -79,14 +83,28 @@ export async function GET(
 
     // Load reviews
     const gameReviews = await getReviewsForGame(gameId);
+    const eligibility = await getReviewEligibility(session.userId, gameId);
+    const userReview = await getUserReviewForGame(session.userId, gameId);
 
     return Response.json({
       ...game,
       isPurchased,
       isInCart,
       purchasedCount,
+      canReview: eligibility.canReview,
+      canReviewReason: eligibility.reason,
+      userReview: userReview
+        ? {
+            id: userReview.id,
+            rating: userReview.rating,
+            comment: userReview.comment,
+            createdAt: userReview.createdAt,
+            updatedAt: userReview.updatedAt,
+          }
+        : null,
       reviews: gameReviews.map((r) => ({
         id: r.id,
+        userId: r.userId,
         rating: r.rating,
         comment: r.comment,
         authorName: r.authorName,

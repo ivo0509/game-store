@@ -47,6 +47,8 @@ const HTML = /* html */ `<!DOCTYPE html>
     }
     .get  { background: #1d4ed8; color: #bfdbfe; }
     .post { background: #15803d; color: #bbf7d0; }
+    .put  { background: #b45309; color: #fde68a; }
+    .delete { background: #b91c1c; color: #fecaca; }
     .path { font-family: "JetBrains Mono", "Fira Code", monospace; font-size: 0.92rem;
             color: #e2e8f0; flex: 1; }
     .badge-auth {
@@ -209,9 +211,13 @@ const HTML = /* html */ `<!DOCTYPE html>
   "ageRating": "T",
   "isPurchased": false,
   "purchasedCount": 152,
+  "canReview": true,
+  "canReviewReason": null,
+  "userReview": null,
   "reviews": [
     {
       "id": 7,
+      "userId": 12,
       "rating": 5,
       "comment": "Amazing game!",
       "authorName": "Jane Doe",
@@ -274,6 +280,94 @@ const HTML = /* html */ `<!DOCTYPE html>
         <tr><th>Error message</th><th>Reason</th></tr>
         <tr><td>No purchase found for this game.</td><td>Game was never purchased or already refunded</td></tr>
       </table>
+    </div>
+  </div>
+
+  <!-- ── Reviews ── -->
+  <h2>Reviews</h2>
+
+  <div class="endpoint">
+    <div class="endpoint-header">
+      <span class="method get">GET</span>
+      <span class="path">/api/games/:id/reviews</span>
+      <span class="badge-auth">JWT</span>
+    </div>
+    <div class="endpoint-body">
+      <p class="desc">List all reviews for a game, newest first.</p>
+      <div class="section-label">200 Response</div>
+      <pre>{
+  "data": [
+    {
+      "id": 7,
+      "userId": 12,
+      "rating": 5,
+      "comment": "Amazing game!",
+      "authorName": "Jane Doe",
+      "createdAt": "2024-07-10T14:30:00.000Z",
+      "updatedAt": "2024-07-10T14:30:00.000Z"
+    }
+  ]
+}</pre>
+    </div>
+  </div>
+
+  <div class="endpoint">
+    <div class="endpoint-header">
+      <span class="method post">POST</span>
+      <span class="path">/api/games/:id/reviews</span>
+      <span class="badge-auth">JWT</span>
+    </div>
+    <div class="endpoint-body">
+      <p class="desc">Create a review for a game. The user must have purchased the game and cannot be the publisher. Each user may only post one review per game.</p>
+      <div class="section-label">Request body (JSON)</div>
+      <table>
+        <tr><th>Field</th><th>Type</th><th>Required</th><th>Description</th></tr>
+        <tr><td><code>rating</code></td><td>integer (1&ndash;5)</td><td><span class="required">yes</span></td><td>Star rating</td></tr>
+        <tr><td><code>comment</code></td><td>string</td><td><span class="required">yes</span></td><td>Review text (non-empty)</td></tr>
+      </table>
+      <div class="section-label">201 Response</div>
+      <pre>{ "message": "Review posted." }</pre>
+      <div class="section-label">400 errors</div>
+      <table>
+        <tr><th>Error message</th><th>Reason</th></tr>
+        <tr><td>Rating must be an integer between 1 and 5.</td><td>Invalid rating</td></tr>
+        <tr><td>Comment must not be empty.</td><td>Missing comment</td></tr>
+        <tr><td>You can only review games you have purchased.</td><td>Not purchased</td></tr>
+        <tr><td>Publishers cannot review their own games.</td><td>Own game</td></tr>
+        <tr><td>You have already reviewed this game.</td><td>Duplicate review</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="endpoint">
+    <div class="endpoint-header">
+      <span class="method put">PUT</span>
+      <span class="path">/api/reviews/:id</span>
+      <span class="badge-auth">JWT</span>
+    </div>
+    <div class="endpoint-body">
+      <p class="desc">Update your own review. Only the original author may edit.</p>
+      <div class="section-label">Request body (JSON)</div>
+      <table>
+        <tr><th>Field</th><th>Type</th><th>Required</th><th>Description</th></tr>
+        <tr><td><code>rating</code></td><td>integer (1&ndash;5)</td><td><span class="required">yes</span></td><td>Updated star rating</td></tr>
+        <tr><td><code>comment</code></td><td>string</td><td><span class="required">yes</span></td><td>Updated review text</td></tr>
+      </table>
+      <div class="section-label">200 Response</div>
+      <pre>{ "message": "Review updated." }</pre>
+    </div>
+  </div>
+
+  <div class="endpoint">
+    <div class="endpoint-header">
+      <span class="method delete">DELETE</span>
+      <span class="path">/api/reviews/:id</span>
+      <span class="badge-auth">JWT</span>
+    </div>
+    <div class="endpoint-body">
+      <p class="desc">Delete your own review. Only the original author may delete.</p>
+      <div class="section-label">200 Response</div>
+      <pre>{ "message": "Review deleted." }</pre>
     </div>
   </div>
 

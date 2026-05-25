@@ -9,6 +9,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from "react-native";
 
@@ -40,10 +41,17 @@ function notify(title: string, message: string) {
 
 type Review = {
   id: number;
+  userId: number;
   rating: number;
   comment: string;
   authorName: string;
   createdAt: string;
+};
+
+type UserReview = {
+  id: number;
+  rating: number;
+  comment: string;
 };
 
 type GameDetail = {
@@ -61,6 +69,9 @@ type GameDetail = {
   isInCart: boolean;
   purchasedCount: number;
   reviews: Review[];
+  canReview: boolean;
+  canReviewReason: "not_logged_in" | "own_game" | "not_purchased" | null;
+  userReview: UserReview | null;
 };
 
 function StarRating({ rating }: { rating: number }) {
@@ -97,6 +108,12 @@ export default function GameDetailsScreen() {
   const [error, setError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
 
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewComment, setReviewComment] = useState("");
+  const [editingReview, setEditingReview] = useState(false);
+  const [reviewSubmitting, setReviewSubmitting] = useState(false);
+  const [reviewError, setReviewError] = useState<string | null>(null);
+
   useEffect(() => {
     if (!id || !token) return;
     fetchGame();
@@ -110,11 +127,78 @@ export default function GameDetailsScreen() {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) throw new Error(`Error ${res.status}`);
-      setGame(await res.json());
+      const data: GameDetail = await res.json();
+      setGame(data);
+      if (data.userReview) {
+        setReviewRating(data.userReview.rating);
+        setReviewComment(data.userReview.comment);
+      } else {
+        setReviewRating(5);
+        setReviewComment("");
+      }
+      setEditingReview(false);
+      setReviewError(null);
     } catch {
       setError("Failed to load game details.");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function submitReview() {
+    if (!game || !token) return;
+    setReviewError(null);
+    if (!reviewComment.trim()) {
+      setReviewError("Comment must not be empty.");
+      return;
+    }
+    setReviewSubmitting(true);
+    try {
+      const isUpdate = !!game.userReview;
+      const url = isUpdate
+        ? `${API_BASE_URL}/reviews/${game.userReview!.id}`
+        : `${API_BASE_URL}/games/${game.id}/reviews`;
+      const res = await fetch(url, {
+        method: isUpdate ? "PUT" : "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          rating: reviewRating,
+          comment: reviewComment.trim(),
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error ?? "Failed to submit review.");
+      await fetchGame();
+    } catch (err) {
+      setReviewError(err instanceof Error ? err.message : "Failed.");
+    } finally {
+      setReviewSubmitting(false);
+    }
+  }
+
+  async function deleteReview() {
+    if (!game?.userReview || !token) return;
+    setReviewSubmitting(true);
+    try {
+      const res = await fetch(
+        `${API_BASE_URL}/reviews/${game.userReview.id}`,
+        {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error ?? "Failed to delete review.");
+      }
+      await fetchGame();
+    } catch (err) {
+      notify("Error", err instanceof Error ? err.message : "Failed.");
+    } finally {
+      setReviewSubmitting(false);
     }
   }
 
@@ -340,10 +424,124 @@ export default function GameDetailsScreen() {
         <Text style={styles.sectionTitle}>
           Reviews ({game.reviews.length})
         </Text>
+
+        {/* Your review form */}
+        {user?.role === "user" && (game.canReview || game.userReview) && (
+          <View style={styles.reviewFormCard}>
+            <Text style={styles.reviewFormTitle}>
+              {game.userReview
+                ? editingReview
+                  ? "Edit your review"
+                  : "Your review"
+                : "Write a review"}
+            </Text>
+
+            {game.userReview && !editingReview ? (
+              <>
+                <View style={styles.reviewHeader}>
+                  <StarRating rating={game.userReview.rating} />
+                </View>
+                <Text style={styles.reviewComment}>{game.userReview.comment}</Text>
+                <View style={styles.reviewActionsRow}>
+                  <Pressable
+                    style={[styles.smallButton, styles.editButton]}
+                    onPress={() => setEditingReview(true)}
+                  >
+                    <Text style={styles.smallButtonText}>Edit</Text>
+                  </Pressable>
+                  <Pressable
+                    style={[styles.smallButton, styles.deleteButton, reviewSubmitting && styles.buttonDisabled]}
+                    onPress={() =>
+                      confirmAction(
+                        "Delete review?",
+                        "Are you sure you want to delete your review?",
+                        deleteReview
+                      )
+                    }
+                    disabled={reviewSubmitting}
+                  >
+                    {reviewSubmitting ? (
+                      <ActivityIndicator color="#fff" />
+                    ) : (
+                      <Text style={styles.smallButtonText}>Delete</Text>
+                    )}
+                  </Pressable>
+                </View>
+              </>
+            ) : (
+              <>
+                <View style={styles.ratingPicker}>
+                  {[1, 2, 3, 4, 5].map((n) => (
+                    <Pressable key={n} onPress={() => setReviewRating(n)}>
+                      <Text style={styles.ratingPickerStar}>
+                        {n <= reviewRating ? "★" : "☆"}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+                <TextInput
+                  style={styles.commentInput}
+                  placeholder="Share your thoughts..."
+                  placeholderTextColor="#9ca3af"
+                  multiline
+                  numberOfLines={4}
+                  value={reviewComment}
+                  onChangeText={setReviewComment}
+                  editable={!reviewSubmitting}
+                />
+                {reviewError && <Text style={styles.errorText}>{reviewError}</Text>}
+                <View style={styles.reviewActionsRow}>
+                  {editingReview && (
+                    <Pressable
+                      style={[styles.smallButton, styles.cancelButton]}
+                      onPress={() => {
+                        setEditingReview(false);
+                        setReviewError(null);
+                        if (game.userReview) {
+                          setReviewRating(game.userReview.rating);
+                          setReviewComment(game.userReview.comment);
+                        }
+                      }}
+                      disabled={reviewSubmitting}
+                    >
+                      <Text style={styles.smallButtonText}>Cancel</Text>
+                    </Pressable>
+                  )}
+                  <Pressable
+                    style={[styles.smallButton, styles.submitButton, reviewSubmitting && styles.buttonDisabled]}
+                    onPress={submitReview}
+                    disabled={reviewSubmitting}
+                  >
+                    {reviewSubmitting ? (
+                      <ActivityIndicator color="#fff" />
+                    ) : (
+                      <Text style={styles.smallButtonText}>
+                        {game.userReview ? "Save" : "Post"}
+                      </Text>
+                    )}
+                  </Pressable>
+                </View>
+              </>
+            )}
+          </View>
+        )}
+
+        {user?.role === "user" && !game.canReview && !game.userReview && game.canReviewReason && (
+          <Text style={styles.emptyText}>
+            {game.canReviewReason === "own_game"
+              ? "Publishers cannot review their own games."
+              : game.canReviewReason === "not_purchased"
+              ? "Purchase this game to leave a review."
+              : "Sign in to leave a review."}
+          </Text>
+        )}
+
         {game.reviews.length === 0 ? (
           <Text style={styles.emptyText}>No reviews yet.</Text>
         ) : (
-          game.reviews.map((r) => <ReviewCard key={r.id} review={r} />)
+          game.reviews
+            .filter((r) => r.userId !== user?.id)
+            .map((r) => <ReviewCard key={r.id} review={r} />)
         )}
 
       </View>
@@ -565,6 +763,67 @@ const styles = StyleSheet.create({
   retryText: {
     color: "#fff",
     fontWeight: "600",
+  },
+  reviewFormCard: {
+    backgroundColor: "#ffffff",
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#cbd5e1",
+    padding: 14,
+    gap: 10,
+  },
+  reviewFormTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#111",
+  },
+  ratingPicker: {
+    flexDirection: "row",
+    gap: 4,
+  },
+  ratingPickerStar: {
+    fontSize: 28,
+    color: "#f59e0b",
+  },
+  commentInput: {
+    borderWidth: 1,
+    borderColor: "#cbd5e1",
+    borderRadius: 6,
+    padding: 10,
+    fontSize: 14,
+    color: "#111",
+    minHeight: 80,
+    textAlignVertical: "top",
+  },
+  reviewActionsRow: {
+    flexDirection: "row",
+    gap: 8,
+    justifyContent: "flex-end",
+  },
+  smallButton: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 6,
+    alignItems: "center",
+    justifyContent: "center",
+    minWidth: 70,
+  },
+  smallButtonText: {
+    color: "#fff",
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  submitButton: {
+    backgroundColor: "#0a7ea4",
+  },
+  editButton: {
+    backgroundColor: "#0a7ea4",
+  },
+  deleteButton: {
+    backgroundColor: "#c0392b",
+  },
+  cancelButton: {
+    backgroundColor: "#6b7280",
   },
 });
 
