@@ -4,9 +4,11 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { requirePublisher } from "@/lib/auth";
+import { deleteR2ObjectByUrl } from "@/lib/r2";
 import {
   createPublisherGame,
   deletePublisherGame,
+  getPublisherGameById,
   updatePublisherGame,
   updatePublisherGameStatus,
   type GameStatus,
@@ -61,6 +63,11 @@ export async function createGameAction(
     );
     newGameId = created.id;
   } catch (error) {
+    // Cleanup: delete the uploaded cover if game creation failed.
+    const submittedCover = String(formData.get("coverImageUrl") ?? "").trim();
+    if (submittedCover) {
+      await deleteR2ObjectByUrl(submittedCover);
+    }
     return {
       error: error instanceof Error ? error.message : "Failed to create game.",
     };
@@ -77,13 +84,31 @@ export async function updateGameAction(
   _prev: PublisherFormState,
   formData: FormData
 ): Promise<PublisherFormState> {
+  let oldCoverUrl: string | null = null;
+  let newCoverUrl: string | null = null;
   try {
     const session = await requirePublisher();
-    await updatePublisherGame(session.userId, gameId, parseInput(formData));
+    const existing = await getPublisherGameById(session.userId, gameId);
+    oldCoverUrl = existing?.coverImageUrl ?? null;
+
+    const input = parseInput(formData);
+    newCoverUrl = input.coverImageUrl;
+    await updatePublisherGame(session.userId, gameId, input);
   } catch (error) {
+    // Cleanup: if a new image was uploaded but save failed, delete it.
+    const submittedCover = String(formData.get("coverImageUrl") ?? "").trim();
+    const originalCover = String(formData.get("originalCoverImageUrl") ?? "").trim();
+    if (submittedCover && submittedCover !== originalCover) {
+      await deleteR2ObjectByUrl(submittedCover);
+    }
     return {
       error: error instanceof Error ? error.message : "Failed to update game.",
     };
+  }
+
+  // After successful save, delete the replaced cover image if it changed.
+  if (oldCoverUrl && oldCoverUrl !== newCoverUrl) {
+    await deleteR2ObjectByUrl(oldCoverUrl);
   }
 
   revalidatePath("/publisher");
@@ -117,8 +142,11 @@ export async function changeGameStatusAction(
 }
 
 export async function deleteGameAction(gameId: number) {
+  let coverUrl: string | null = null;
   try {
     const session = await requirePublisher();
+    const existing = await getPublisherGameById(session.userId, gameId);
+    coverUrl = existing?.coverImageUrl ?? null;
     await deletePublisherGame(session.userId, gameId);
   } catch (error) {
     return {
@@ -126,6 +154,10 @@ export async function deleteGameAction(gameId: number) {
       message:
         error instanceof Error ? error.message : "Failed to delete game.",
     };
+  }
+
+  if (coverUrl) {
+    await deleteR2ObjectByUrl(coverUrl);
   }
 
   revalidatePath("/publisher");

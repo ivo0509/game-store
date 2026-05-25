@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import type { Game } from "../services/gamesService";
 
 type Props = {
@@ -16,6 +17,23 @@ export default function GameCard({ game }: Props) {
       href={`/games/${game.id}`}
       className="group bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow flex flex-col"
     >
+      {/* Cover */}
+      <div className="relative w-full aspect-video bg-gray-100 overflow-hidden">
+        {game.coverImageUrl ? (
+          <Image
+            src={game.coverImageUrl}
+            alt={game.title}
+            fill
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+            className="object-cover group-hover:scale-105 transition-transform"
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center text-xs text-gray-400">
+            No image
+          </div>
+        )}
+      </div>
+
       {/* Details */}
       <div className="p-4 flex flex-col gap-2 flex-1">
         <div className="flex items-start justify-between gap-2">

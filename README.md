@@ -21,6 +21,8 @@ The project is built with Next.js, React, TypeScript, Tailwind CSS, PostgreSQL, 
 - View purchased games in library
 - Add games to wishlist
 - Leave reviews for purchased games
+- Transactions by users to publishers (Add to Card / Refund)  are also executed from the mobile app to the web app
+
 
 ### Publishers
 - Add new games

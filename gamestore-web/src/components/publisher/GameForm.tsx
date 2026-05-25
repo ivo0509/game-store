@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useRef, useState } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 
 import {
@@ -29,6 +30,51 @@ export default function GameForm({ mode, initial }: Props) {
       : createGameAction;
 
   const [state, formAction, isPending] = useActionState(action, initialState);
+
+  const originalCover = initial?.coverImageUrl ?? "";
+  const [coverUrl, setCoverUrl] = useState<string>(originalCover);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadError(null);
+    setUploading(true);
+    const previousUrl = coverUrl;
+
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch("/api/upload", { method: "POST", body: fd });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Upload failed.");
+
+      setCoverUrl(data.url as string);
+
+      // Best-effort delete of replaced upload, but never the original
+      // (the original is still referenced by the saved game until form submit).
+      if (previousUrl && previousUrl !== originalCover) {
+        deleteUploadedFile(previousUrl);
+      }
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : "Upload failed.");
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  }
+
+  function handleRemove() {
+    const previousUrl = coverUrl;
+    setCoverUrl("");
+    setUploadError(null);
+    if (previousUrl && previousUrl !== originalCover) {
+      deleteUploadedFile(previousUrl);
+    }
+  }
 
   return (
     <form action={formAction} className="space-y-5">
@@ -144,15 +190,18 @@ export default function GameForm({ mode, initial }: Props) {
             className="w-full rounded-lg border border-gray-300 px-4 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
           />
         </div>
-        <Field
-          label="Cover Image URL"
-          name="coverImageUrl"
-          type="url"
-          defaultValue={initial?.coverImageUrl ?? ""}
-          placeholder="https://..."
-          pattern="https?://.*"
+        <CoverImageUploader
+          coverUrl={coverUrl}
+          uploading={uploading}
+          uploadError={uploadError}
+          onFileChange={handleFileChange}
+          onRemove={handleRemove}
+          fileInputRef={fileInputRef}
         />
       </div>
+
+      <input type="hidden" name="coverImageUrl" value={coverUrl} />
+      <input type="hidden" name="originalCoverImageUrl" value={originalCover} />
 
       <Field
         label="Trailer URL"
@@ -184,11 +233,13 @@ export default function GameForm({ mode, initial }: Props) {
       <div className="flex items-center gap-3 pt-2">
         <button
           type="submit"
-          disabled={isPending}
+          disabled={isPending || uploading}
           className="rounded-lg bg-blue-600 px-5 py-2.5 font-semibold text-white hover:bg-blue-700 disabled:bg-gray-400"
         >
           {isPending
             ? "Saving..."
+            : uploading
+            ? "Uploading..."
             : mode === "create"
             ? "Create Game"
             : "Save Changes"}
@@ -198,6 +249,94 @@ export default function GameForm({ mode, initial }: Props) {
         )}
       </div>
     </form>
+  );
+}
+
+function deleteUploadedFile(url: string) {
+  // Best-effort cleanup. Fire-and-forget; ignore errors.
+  fetch(`/api/upload?url=${encodeURIComponent(url)}`, {
+    method: "DELETE",
+  }).catch(() => {});
+}
+
+function CoverImageUploader({
+  coverUrl,
+  uploading,
+  uploadError,
+  onFileChange,
+  onRemove,
+  fileInputRef,
+}: {
+  coverUrl: string;
+  uploading: boolean;
+  uploadError: string | null;
+  onFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onRemove: () => void;
+  fileInputRef: React.RefObject<HTMLInputElement | null>;
+}) {
+  return (
+    <div>
+      <label className="mb-2 block text-sm font-medium text-gray-700">
+        Cover Image
+      </label>
+
+      {coverUrl ? (
+        <div className="space-y-2">
+          <div className="relative w-full h-40 overflow-hidden rounded-lg border border-gray-300 bg-gray-50">
+            <Image
+              src={coverUrl}
+              alt="Cover preview"
+              fill
+              sizes="(max-width: 640px) 100vw, 50vw"
+              className="object-cover"
+              unoptimized
+            />
+          </div>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+              className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:border-blue-500 hover:text-blue-600 disabled:opacity-50"
+            >
+              Replace
+            </button>
+            <button
+              type="button"
+              onClick={onRemove}
+              disabled={uploading}
+              className="rounded-lg border border-red-300 px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
+            >
+              Remove
+            </button>
+          </div>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => fileInputRef.current?.click()}
+          disabled={uploading}
+          className="flex h-40 w-full items-center justify-center rounded-lg border-2 border-dashed border-gray-300 text-sm text-gray-500 hover:border-blue-500 hover:text-blue-600 disabled:opacity-50"
+        >
+          {uploading ? "Uploading..." : "Click to upload image"}
+        </button>
+      )}
+
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp,image/gif"
+        onChange={onFileChange}
+        className="hidden"
+      />
+
+      {uploadError && (
+        <p className="mt-1 text-xs text-red-600">{uploadError}</p>
+      )}
+      <p className="mt-1 text-xs text-gray-500">
+        JPG, PNG, WEBP, or GIF. Up to 5 MB.
+      </p>
+    </div>
   );
 }
 

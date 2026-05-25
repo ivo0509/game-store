@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { getGameById } from "@/services/gamesService";
 import { notFound } from "next/navigation";
 import AddToCartButton from "@/components/AddToCartButton";
@@ -46,6 +47,20 @@ export default async function GameDetailPage({ params }: Props) {
       </Link>
 
       <div className="max-w-2xl flex flex-col gap-6">
+        {/* Cover Image */}
+        {game.coverImageUrl && (
+          <div className="relative w-full aspect-video overflow-hidden rounded-lg border border-gray-200 bg-gray-100">
+            <Image
+              src={game.coverImageUrl}
+              alt={game.title}
+              fill
+              sizes="(max-width: 768px) 100vw, 672px"
+              className="object-cover"
+              priority
+            />
+          </div>
+        )}
+
         {/* Header */}
           <div>
             <div className="flex items-start justify-between gap-4 mb-2">
