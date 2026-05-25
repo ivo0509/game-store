@@ -17,6 +17,8 @@ The project is built with Next.js, React, TypeScript, Tailwind CSS, PostgreSQL, 
 - Manage profile
 - Add games to cart
 - Remove games from cart
+- Refund games
+- Add Demo Money to Wallet
 - Complete checkout
 - View purchased games in library
 - Add games to wishlist
@@ -30,9 +32,15 @@ The project is built with Next.js, React, TypeScript, Tailwind CSS, PostgreSQL, 
 - Manage game availability
 - View sales
 - View reviews
+- Sell games from web app to mobile app for users (the games that are sold are visible on mobile apps).
+- Use only web app (mobile app is only for users)
+
 
 ### Admins
 - Manage users
 - Manage games
 - Manage orders
 - Manage reviews
+- Sell games from web app to mobile app for users (the games that are sold are visible on mobile apps).
+- Edit own games
+- Use only web app (mobile app is only for users)
