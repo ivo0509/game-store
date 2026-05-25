@@ -80,3 +80,6 @@ ehthumbs.db
 
 # App-specific
 app-example
+
+# Local Netlify folder
+.netlify
