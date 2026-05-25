@@ -4,6 +4,7 @@
   "description": "Game Store App for selling and buying video games",
   "license": "ISC",
   "author": "Ivan Yordanov",
+  "private": true,
   "type": "commonjs",
   "main": "index.js",
   "workspaces": [

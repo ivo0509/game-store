@@ -1,0 +1,12 @@
+{
+  "expo": {
+    "extra": {
+      "eas": {
+        "projectId": "3e48032b-0014-42e3-a137-2cd41cdaa581"
+      }
+    },
+    "android": {
+      "package": "com.ivo0509.gamestore"
+    }
+  }
+}
