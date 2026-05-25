@@ -6,7 +6,6 @@
   "author": "Ivan Yordanov",
   "private": true,
   "type": "commonjs",
-  "main": "index.js",
   "workspaces": [
     "gamestore-web",
     "gamestore-mobile",
@@ -15,6 +14,7 @@
   "scripts": {
     "dev": "npm run dev --workspaces --if-present",
     "build": "npm run build --workspaces --if-present",
+    "mobile:build:apk": "npm --prefix gamestore-mobile exec -- eas build --platform android --profile preview",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "devDependencies": {
