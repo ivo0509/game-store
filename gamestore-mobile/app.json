@@ -17,7 +17,8 @@
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.ivo0509.gamestoremobile"
     },
     "web": {
       "output": "static",
@@ -43,8 +44,9 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "d4cc1b01-6513-43ee-a04c-aba39b603590"
+        "projectId": "a4cac7fc-2aa2-4ead-8547-a9ea06126e9a"
       }
-    }
+    },
+    "owner": "ivo0509"
   }
 }
