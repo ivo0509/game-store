@@ -1,15 +1,17 @@
 import { useRouter, useSegments, Stack } from "expo-router";
 import { useEffect } from "react";
+import { ActivityIndicator, View } from "react-native";
 
 import { AuthProvider, useAuth } from "../context/AuthContext";
 import { WalletProvider } from "../context/WalletContext";
 
 function RootNavigation() {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const segments = useSegments();
   const router = useRouter();
 
   useEffect(() => {
+    if (loading) return;
     const inAuthGroup = segments[0] === "(tabs)";
     const inGameDetails = segments[0] === "games";
 
@@ -18,7 +20,15 @@ function RootNavigation() {
     } else if (user && segments[0] === "login") {
       router.replace("/");
     }
-  }, [user, segments]);
+  }, [user, loading, segments]);
+
+  if (loading) {
+    return (
+      <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+        <ActivityIndicator size="large" color="#0a7ea4" />
+      </View>
+    );
+  }
 
   return (
     <Stack>

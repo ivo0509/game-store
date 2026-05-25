@@ -1,10 +1,11 @@
-import { useRouter } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
+import { useFocusEffect, useRouter } from "expo-router";
+import { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
   Image,
   Pressable,
+  RefreshControl,
   StyleSheet,
   Text,
   View,
@@ -104,12 +105,18 @@ export default function GamesScreen() {
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const fetchGames = useCallback(
     async (pageNum: number, append: boolean) => {
       if (!token) return;
-      append ? setLoadingMore(true) : setLoading(true);
+      if (!append && pageNum === 1) {
+        // first page loads: keep `loading` only if we have no data yet
+        if (games.length === 0) setLoading(true);
+      } else if (append) {
+        setLoadingMore(true);
+      }
       setError(null);
 
       try {
@@ -127,14 +134,23 @@ export default function GamesScreen() {
       } finally {
         setLoading(false);
         setLoadingMore(false);
+        setRefreshing(false);
       }
     },
-    [token]
+    [token, games.length]
   );
 
-  useEffect(() => {
+  // Refetch every time the screen gains focus so newly added/deleted games show up.
+  useFocusEffect(
+    useCallback(() => {
+      fetchGames(1, false);
+    }, [fetchGames])
+  );
+
+  function onRefresh() {
+    setRefreshing(true);
     fetchGames(1, false);
-  }, [fetchGames]);
+  }
 
   function loadMore() {
     if (!loadingMore && page < totalPages) {
@@ -173,6 +189,9 @@ export default function GamesScreen() {
       contentContainerStyle={styles.list}
       onEndReached={loadMore}
       onEndReachedThreshold={0.3}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+      }
       renderItem={({ item }) =>
         item ? (
           <GameCard
